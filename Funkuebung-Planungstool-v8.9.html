@@ -1,0 +1,3267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EA-Funkübung – Feuerwehr Neuhof | Planungstool v8.9</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+/* ══════════════════════════════════════════════════════
+   RESET & ROOT
+══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scroll-behavior: smooth; }
+
+:root {
+  --bg:          #0f0f0f;
+  --bg2:         #141414;
+  --card:        #1a1a1a;
+  --card2:       #202020;
+  --border:      #2e2e2e;
+  --border2:     #3a3a3a;
+  --red:         #8b0000;
+  --red-h:       #a50000;
+  --red-dim:     rgba(139,0,0,0.15);
+  --red-glow:    rgba(139,0,0,0.30);
+  --text:        #c8c8c8;
+  --text-sec:    #aaaaaa;
+  --text-muted:  #666666;
+  --input-bg:    #111111;
+  --radius:      7px;
+  --radius-lg:   11px;
+  --shadow:      0 6px 28px rgba(0,0,0,0.55);
+  --shadow-sm:   0 2px 10px rgba(0,0,0,0.38);
+  --green:       #18c964;
+  --green-dim:   rgba(24,201,100,0.13);
+  --orange:      #f5a623;
+  --orange-dim:  rgba(245,166,35,0.13);
+  --font: Inter, 'Segoe UI', Arial, sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════
+   BASE
+══════════════════════════════════════════════════════ */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: #223060; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--red); }
+
+/* ══════════════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════════════ */
+.site-header {
+  background: var(--card);
+  border-bottom: 3px solid var(--red);
+  padding: 13px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  box-shadow: var(--shadow);
+}
+@media (max-width: 700px) {
+  .site-header { position: static; top: auto; }
+}
+.hdr-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.hdr-brand { flex: 1 1 260px; min-width: 0; }
+.title-inp {
+  background: #0d0d0d !important;
+  border: 1px solid #3a3a3a !important;
+  border-radius: 6px !important;
+  color: #c8c8c8 !important;
+  font-size: 1.08rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.015em !important;
+  padding: 6px 10px !important;
+  width: 100% !important;
+  transition: border-color .15s, box-shadow .15s !important;
+}
+.title-inp:focus {
+  outline: none !important;
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 2px rgba(139,0,0,0.2) !important;
+}
+.title-inp::placeholder {
+  color: rgba(160,160,160,0.5) !important;
+  font-style: italic;
+  font-weight: 400 !important;
+}
+.hdr-brand h1 {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: var(--red);
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hdr-brand .sub { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+.hdr-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.meta-grp { display: flex; flex-direction: column; gap: 2px; }
+.meta-lbl { font-size: 0.62rem; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+.meta-inp {
+  background: var(--input-bg);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.8rem;
+  padding: 5px 9px;
+  width: 140px;
+  transition: border-color .15s;
+}
+.meta-inp:focus { outline: none; border-color: var(--red); }
+.meta-inp::placeholder { color: rgba(90,106,138,0.7); font-style: italic; }
+.hdr-btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+
+/* ══════════════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--red); color: #c8c8c8; border: none;
+  border-radius: 5px; padding: 7px 13px;
+  font-family: var(--font); font-size: 0.77rem; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.03em; white-space: nowrap;
+  transition: background .15s, transform .1s; user-select: none;
+}
+.btn:hover { background: var(--red-h); }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { background: #1b2a4a !important; color: #3a4a6a !important; cursor: not-allowed; opacity:.7; transform: none !important; }
+.btn-ghost { background: var(--card2); border: 1px solid var(--border2); color: var(--text-sec); }
+.btn-ghost:hover { background: #1a2e52; border-color: #334; color: var(--text); }
+.btn-sm { padding: 4px 8px; font-size: 0.7rem; border-radius: 4px; }
+.btn-xs { padding: 3px 6px; font-size: 0.68rem; border-radius: 3px; }
+.btn-icon {
+  background: var(--card2); border: 1px solid var(--border2); color: var(--text-sec);
+  padding: 4px 7px; font-size: 0.78rem; border-radius: 4px; cursor: pointer;
+  font-family: var(--font); transition: background .15s, border-color .15s; user-select: none;
+}
+.btn-icon:hover { background: #1a2e52; border-color: #445; color: var(--text); }
+.btn-icon:disabled { opacity: .28; cursor: not-allowed; }
+.btn-icon.danger { border-color: #4a0a14; color: #c04050; }
+.btn-icon.danger:hover { background: #2e0810; border-color: var(--red); color: #ff8090; }
+.btn-icon.open-link { border-color: #1b3a6a; color: #6a9ee0; }
+.btn-icon.open-link:hover { background: #0d2040; border-color: #3a6aaa; color: #9dc4ff; }
+
+/* ══════════════════════════════════════════════════════
+   INPUTS
+══════════════════════════════════════════════════════ */
+input[type="text"], select {
+  background: #0d0d0d;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+}
+input[type="text"]:focus, select:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(139,0,0,0.2);
+}
+input[type="text"]::placeholder { color: rgba(160,160,160,0.5); font-style: italic; }
+select { cursor: pointer; }
+select option { background: #1a1a1a; color: #c8c8c8; }
+
+/* ══════════════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════════════ */
+.page-body { max-width: 1920px; margin: 0 auto; padding: 22px 28px; display: flex; flex-direction: column; gap: 22px; }
+
+/* ══════════════════════════════════════════════════════
+   SECTION CARD
+══════════════════════════════════════════════════════ */
+.sec {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);
+}
+.sec-head {
+  display: flex; align-items: center; gap: 12px; padding: 14px 22px;
+  background: linear-gradient(90deg, rgba(255,0,43,0.09) 0%, transparent 100%);
+  border-bottom: 1px solid var(--border);
+}
+.sec-icon {
+  width: 34px; height: 34px; background: var(--red); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0;
+}
+.sec-title { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
+.sec-body { padding: 20px 22px; }
+.sec-foot {
+  padding: 12px 22px; background: var(--bg2); border-top: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+
+/* ══════════════════════════════════════════════════════
+   TABLES
+══════════════════════════════════════════════════════ */
+.tbl-wrap { overflow-x: auto; border-radius: 5px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+thead th {
+  background: #1e1e1e; color: var(--text-sec);
+  padding: 10px 12px; text-align: center; font-weight: 700;
+  font-size: 0.95rem; letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap; border-bottom: 2px solid var(--red);
+  position: sticky; top: 0; z-index: 2;
+}
+thead th.th-red { background: var(--red); color: #fff; }
+thead th.th-sub { background: #161616; font-size: 16px; border-bottom: 1px solid var(--border2); }
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,0.015); }
+
+/* ══════════════════════════════════════════════════════
+   LAGEBILD MULTI-URL
+══════════════════════════════════════════════════════ */
+.url-entry { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.url-entry:last-child { margin-bottom: 0; }
+.url-row { display: flex; gap: 4px; align-items: center; }
+.url-row input { flex: 1; }
+.url-assign { margin-top: 2px; }
+.url-assign select { font-size: 0.72rem; padding: 3px 6px; }
+
+/* ══════════════════════════════════════════════════════
+   PREVIEWS
+══════════════════════════════════════════════════════ */
+.prev-list { display: flex; flex-direction: column; gap: 5px; }
+.prev-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.prev-lbl { font-size: 0.62rem; color: var(--text-muted); font-style: italic; text-align: center; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prev-img {
+  width: 88px; height: 60px; object-fit: cover; border-radius: 4px;
+  border: 1px solid var(--border2); cursor: zoom-in; display: block;
+  transition: border-color .15s, box-shadow .15s;
+}
+.prev-img:hover { border-color: var(--red); box-shadow: 0 0 0 2px var(--red-glow); }
+.prev-none { color: var(--text-muted); font-size: 0.7rem; font-style: italic; }
+.prev-err { color: #d05050; font-size: 0.7rem; font-style: italic; }
+
+/* ══════════════════════════════════════════════════════
+   ACTIONS CELL
+══════════════════════════════════════════════════════ */
+.actions-wrap { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; justify-content: center; }
+
+/* ══════════════════════════════════════════════════════
+   LIGHTBOX
+══════════════════════════════════════════════════════ */
+dialog#lightbox { background: transparent; border: none; padding: 16px; max-width: 95vw; max-height: 95vh; overflow: visible; }
+dialog#lightbox::backdrop { background: rgba(0,0,0,0.9); backdrop-filter: blur(5px); }
+.lb-inner { position: relative; background: #1a1a1a; border-radius: 10px; border: 1px solid #2e2e2e; padding: 12px; box-shadow: 0 24px 70px rgba(0,0,0,0.85); overflow: visible; }
+#lb-img { display: block; max-width: min(90vw, 1200px); max-height: 82vh; object-fit: contain; border-radius: 6px; }
+.lb-close {
+  position: absolute; top: -14px; right: -14px; background: var(--red);
+  border: 2px solid #1a1a1a; color: #c8c8c8; border-radius: 50%; width: 30px; height: 30px;
+  font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-weight: 900; transition: background .15s; z-index: 100;
+}
+.lb-close:hover { background: var(--red-h); }
+
+/* ══════════════════════════════════════════════════════
+   SOLUTION INPUT
+══════════════════════════════════════════════════════ */
+.sol-inp {
+  font-size: 1.05rem !important; font-weight: 700 !important;
+  letter-spacing: 0.07em !important; padding: 10px 14px !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   TILES (SOLL / IST / STATUS)
+══════════════════════════════════════════════════════ */
+.tiles-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.tile {
+  flex: 1 1 120px; min-width: 110px;
+  background: var(--card2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 10px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: background .2s, border-color .2s;
+}
+.tile-lbl { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); }
+.tile-val { font-size: 2rem; font-weight: 900; color: var(--text); line-height: 1.1; text-align: center; }
+.tile.green { background: var(--green-dim); border-color: rgba(24,201,100,0.45); }
+.tile.green .tile-val { color: var(--green); }
+.tile.green .tile-lbl { color: var(--green); }
+.tile.red { background: var(--red-dim); border-color: rgba(255,0,43,0.45); }
+.tile.red .tile-val { color: #ff5566; }
+.tile.red .tile-lbl { color: #ff5566; }
+.tile.orange { background: var(--orange-dim); border-color: rgba(245,166,35,0.45); }
+.tile.orange .tile-val { color: var(--orange); }
+.tile.orange .tile-lbl { color: var(--orange); }
+
+/* ══════════════════════════════════════════════════════
+   OPENSTREETMAP / LEAFLET
+══════════════════════════════════════════════════════ */
+.sg-map-wrap {
+  margin-top: 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.sg-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--card2);
+  border-bottom: 1px solid var(--border);
+}
+.sg-map-lbl { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; }
+.sg-map-body { }
+#sg-map { height: 100%; min-height: 380px; width: 100%; }
+#sg-map-big { height: 65vh; width: 100%; min-height: 400px; }
+
+/* Expand control button (inside leaflet) */
+.sg-expand-btn {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-size: 1rem;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.sg-expand-btn:hover { background: var(--card2); color: var(--text); }
+
+/* Station generieren – Zwei-Spalten-Layout */
+.sg-layout { display: flex; gap: 14px; align-items: stretch; }
+.sg-left { flex: 0 0 46%; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.sg-right { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sg-panel { border: 1px solid var(--border2); border-radius: var(--radius); overflow: hidden; }
+.sg-panel-head { display: flex; align-items: center; gap: 7px; background: var(--card2); border-bottom: 1px solid var(--border); padding: 7px 14px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-sec); }
+.sg-ph-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 3px rgba(0,0,0,0.4); }
+.sg-panel-body { padding: 14px; }
+.sg-right .sg-panel { flex: 1; display: flex; flex-direction: column; }
+.sg-right .sg-panel-body { flex: 1; padding: 0; }
+.sg-coords-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+@media (max-width: 900px) {
+  .sg-layout { flex-direction: column; }
+  .sg-left, .sg-right { flex: none; width: 100%; }
+}
+@media (max-width: 640px) { .sg-coords-row { grid-template-columns: 1fr; } }
+
+/* ─── QR-CODES ─── */
+.qr-ctrl-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.qr-output-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; flex-wrap: wrap; }
+.qr-output-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+.qr-grid { display: flex; flex-wrap: wrap; gap: 18px; }
+.qr-card { background: var(--card); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 210px; }
+.qr-label { font-weight: 800; color: var(--text); font-size: 0.95rem; letter-spacing: .02em; }
+.qr-missing { color: var(--orange); font-size: 0.82rem; text-align: center; }
+.qr-canvas canvas, .qr-canvas img { display: block; border-radius: 4px; }
+@media (max-width: 700px) { .qr-ctrl-grid { grid-template-columns: 1fr; } }
+/* Handbuch */
+.btn-handbuch { background: #1a6bc7; color: #fff; border: none; margin-left: 18px; }
+.btn-handbuch:hover { background: #1558a8; }
+.hb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(4px); z-index: 2500; display: none; overflow-y: auto; padding: 24px 16px; }
+.hb-overlay.open { display: block; }
+.hb-inner { position: relative; background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 10px; max-width: 900px; margin: 0 auto; padding: 30px 36px 34px; box-shadow: 0 24px 70px rgba(0,0,0,0.85); }
+.hb-close { position: absolute; top: -14px; right: -14px; width: 30px; height: 30px; border-radius: 50%; background: #8b0000; border: none; color: #fff; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10; }
+.hb-close:hover { background: #a00; }
+.hb-title { font-size: 1.25rem; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.hb-version { font-size: 0.75rem; color: #555; margin-bottom: 22px; }
+.hb-toc { margin-bottom: 26px; padding: 14px 16px; background: #111; border-radius: 6px; border: 1px solid #2e2e2e; }
+.hb-toc-title { font-size: 0.68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #555; margin-bottom: 10px; }
+#hb-toc-links { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+#hb-toc-links a { font-size: 0.82rem; color: #aaa; text-decoration: none; padding: 2px 0; }
+#hb-toc-links a:hover { color: #1a6bc7; }
+.hb-chapter { margin-bottom: 30px; }
+.hb-chapter-title { position: relative; font-size: 1rem; font-weight: 900; color: #fff; padding: 0 0 8px 13px; margin-bottom: 12px; border-bottom: 1px solid #2e2e2e; scroll-margin-top: 20px; }
+.hb-chapter-title::before { content: ''; position: absolute; left: 0; top: 2px; bottom: 9px; width: 4px; border-radius: 3px; background: #8b0000; }
+.hb-chapter-text { font-size: 0.88rem; color: #c8c8c8; line-height: 1.75; }
+.hb-chapter-text p { margin-bottom: 10px; }
+.hb-chapter-text ul { padding-left: 18px; margin: 6px 0 10px; }
+.hb-chapter-text li { margin-bottom: 4px; }
+.hb-note { background: rgba(245,166,35,0.07); border: 1px solid rgba(245,166,35,0.25); border-left: 4px solid #f5a623; border-radius: 7px; padding: 10px 13px; margin: 12px 0; color: #d6d6d6; font-size: 0.86rem; line-height: 1.6; }
+.hb-note strong { color: #f5a623; }
+.hb-example { background: #111; border: 1px solid #2e2e2e; border-left: 4px solid #8b0000; border-radius: 7px; padding: 10px 13px; margin: 12px 0; color: #c8c8c8; font-size: 0.86rem; line-height: 1.65; }
+.hb-example-title { font-size: 0.68rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; color: #666; margin-bottom: 6px; }
+.hb-footer { font-size: 0.72rem; color: #444; text-align: right; margin-top: 14px; border-top: 1px solid #222; padding-top: 10px; }
+@media (max-width: 650px) { #hb-toc-links { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .hb-inner { padding: 20px 16px 24px; } }
+@media (max-width: 600px) { .hb-inner { padding: 20px 16px 24px; } }
+.lagebild-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  background: #1a1a1a;
+  border: 1px solid #8b0000;
+  border-left: 4px solid #8b0000;
+  color: #c8c8c8;
+  padding: 12px 16px;
+  border-radius: 7px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.55);
+  z-index: 3000;
+  font-size: 0.85rem;
+  max-width: 360px;
+  display: none;
+}
+@media (max-width: 480px) {
+  .lagebild-toast { right: 12px; left: 12px; max-width: none; }
+}
+
+dialog#sg-map-dlg {
+  background: transparent;
+  border: none;
+  padding: 16px;
+  max-width: 92vw;
+  width: 900px;
+  max-height: 95vh;
+  overflow: visible;
+}
+dialog#sg-map-dlg::backdrop { background: rgba(0,0,0,0.88); backdrop-filter: blur(4px); }
+.sg-map-dlg-inner {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 10px;
+  border: 1px solid #2e2e2e;
+  padding: 12px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.85);
+  overflow: visible;  /* wie .lb-inner – Button kann außen liegen */
+}
+.sg-map-dlg-map { overflow: hidden; border-radius: 6px; } /* Karte korrekt clippen */
+dialog#sg-map-dlg .lb-close { top: -14px; right: -14px; z-index: 100; }
+
+/* Leaflet overrides for dark theme */
+.leaflet-bar a { background: var(--card); color: var(--text-sec); border-color: var(--border2); }
+.leaflet-bar a:hover { background: var(--card2); color: var(--text); }
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sg-field { display: flex; flex-direction: column; gap: 4px; }
+.sg-lbl { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.sg-hint { font-size: 0.78rem; color: var(--text-muted); font-style: italic; margin-top: 4px; }
+
+/* Toggle switch */
+.sg-toggle-row { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 8px; user-select: none; }
+.sg-toggle-switch { position: relative; display: inline-block; width: 42px; height: 22px; flex-shrink: 0; }
+.sg-toggle-switch input { opacity: 0; width: 0; height: 0; }
+.sg-slider {
+  position: absolute; inset: 0; background: var(--grau-rand, #3a3a3a);
+  border-radius: 22px; transition: .2s; cursor: pointer;
+}
+.sg-slider::before {
+  content: ''; position: absolute; width: 16px; height: 16px;
+  left: 3px; bottom: 3px; background: #888; border-radius: 50%; transition: .2s;
+}
+.sg-toggle-switch input:checked + .sg-slider { background: var(--red); }
+.sg-toggle-switch input:checked + .sg-slider::before { transform: translateX(20px); background: #fff; }
+.sg-toggle-lbl { font-size: 0.85rem; color: var(--text-sec); }
+
+/* Test info */
+.sg-test-info {
+  font-size: 0.82rem; color: var(--orange, #f5a623);
+  background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.3);
+  border-radius: var(--radius); padding: 8px 12px; margin-bottom: 4px;
+  line-height: 1.5;
+}
+.sg-test-info strong { color: var(--text); }
+.sg-ti-hint { font-size: 0.82rem; font-weight: 700; color: var(--orange); margin-bottom: 6px; }
+.sg-ti-current { font-size: 0.78rem; color: var(--text-sec); margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(245,166,35,0.2); }
+.sg-ti-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sg-ti-msg { font-size: 0.8rem; padding: 5px 8px; border-radius: 4px; margin-top: 6px; }
+.sg-ti-err { background: rgba(255,0,43,0.1); border: 1px solid rgba(255,0,43,0.3); color: #ff6677; }
+.sg-ti-ok  { background: rgba(24,201,100,0.1); border: 1px solid rgba(24,201,100,0.3); color: var(--green); }
+#sg-error  { background: rgba(245,166,35,.10) !important; border: 1px solid rgba(245,166,35,.45) !important; color: #f5a623 !important; border-radius: var(--radius); padding: 10px 14px; font-size: 0.85rem; line-height: 1.55; word-break: break-word; margin-top: 10px; margin-bottom: 0; }
+.sol-boxes-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+.sol-box-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+.sol-box-left .status-box { margin-top: 0; flex: 1; }
+
+.vorgabe-box {
+  flex: 1;
+  min-width: 0;
+  background: rgba(245,166,35,0.08);
+  border: 2px solid rgba(245,166,35,0.35);
+  border-radius: 7px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vb-title {
+  font-family: var(--font-condensed, var(--font));
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--orange);
+  display: block;
+}
+.vb-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+.vb-entries { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+.vb-entry { font-size: 0.85rem; line-height: 1.5; }
+.vb-label { font-weight: 700; color: var(--text-sec); }
+.vb-val {
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 0.04em;
+  word-break: break-word;
+}
+.vb-none { color: var(--text-muted); font-style: italic; }
+.vb-empty { color: var(--text-muted); font-style: italic; font-size: 0.82rem; }
+.status-box {
+  padding: 12px 16px; border-radius: 7px;
+  border-width: 2px; border-style: solid; line-height: 1.6;
+}
+.status-box.hidden { display: none; }
+.status-box .sb-title { font-size: 0.9rem; font-weight: 800; display: block; margin-bottom: 3px; }
+.status-box .sb-text { font-size: 0.82rem; }
+.status-box .sb-detail { font-size: 0.75rem; margin-top: 5px; opacity: 0.82; }
+.status-box.green { background: rgba(24,201,100,0.1); border-color: rgba(24,201,100,0.5); color: #5ae09a; }
+.status-box.orange { background: rgba(245,166,35,0.1); border-color: rgba(245,166,35,0.5); color: #f5c060; }
+.status-box.red { background: rgba(255,0,43,0.1); border-color: rgba(255,0,43,0.5); color: #ff7785; }
+
+/* ══════════════════════════════════════════════════════
+   OVERVIEW TABLE
+══════════════════════════════════════════════════════ */
+.ov-wrap {
+  overflow-x: auto;
+  border-radius: 6px; border: 1px solid var(--border);
+}
+@media (min-width: 1200px) {
+  .ov-wrap { overflow-x: visible; }
+}
+#ov-table { table-layout: fixed; width: 100%; }
+#ov-table thead th { position: sticky; top: 0; z-index: 5; }
+#ov-table thead tr:nth-child(2) th { top: 35px; }
+.ov-pos { text-align: center; font-weight: 800; color: var(--red); width: 52px; font-size: 1.5rem; }
+.ov-addr { font-size: 0.95rem; color: var(--text-sec); white-space: normal; word-break: break-word; }
+.ov-letter-cell { text-align: right; width: 58px; }
+.ov-letter { font-weight: 900; font-size: 1.5rem; color: var(--red); }
+.ov-space { font-weight: 900; font-size: 1.2rem; color: var(--red); line-height: 1.3; }
+.ov-punkt { font-weight: 900; font-size: 1.5rem; color: var(--red); line-height: 1.3; }
+.ov-empty { color: #444444; font-size: 1rem; }
+.ov-no-data { text-align: center; color: var(--text-muted); font-style: italic; padding: 28px; font-size: 0.85rem; }
+.grp-border { border-left: 2px solid rgba(255,255,255,0.07) !important; }
+
+/* ══════════════════════════════════════════════════════
+   UNIT HEADER INPUTS
+══════════════════════════════════════════════════════ */
+.unit-head-grp { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.unit-head-grp select, .unit-head-grp input { font-size: 16px !important; padding: 2px 4px; }
+.unit-label { font-size: 16px; font-weight: 700; color: #fff; margin-top: 1px; }
+
+/* ══════════════════════════════════════════════════════
+   MISC
+══════════════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.st-num { font-weight: 800; color: var(--red); font-size: 1.5rem; white-space: nowrap; }
+.print-only { display: none; }
+
+/* ══════════════════════════════════════════════════════
+   PRINT HEADER (only visible when printing)
+══════════════════════════════════════════════════════ */
+.print-header { display: none; }
+
+@media print {
+  @page { size: A4 landscape; margin: 5mm; }
+  *, *::before, *::after { box-shadow: none !important; transition: none !important; animation: none !important; }
+
+  body { background: #fff !important; color: #111 !important; font-size: 11px; font-family: Inter, 'Segoe UI', Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* HIDE UI */
+  .no-print, .site-header, .sec-foot, .col-actions, .hdr-btns, .btn, .btn-icon, .btn-ghost, .url-assign, .actions-wrap, .prev-none, .prev-err, input[type="text"], select { display: none !important; }
+
+  /* PRINT HEADER */
+  .print-header { display: flex !important; justify-content: space-between; align-items: flex-start; padding: 0 0 10px 0; margin-bottom: 14px; border-bottom: 2px solid #111; }
+  .print-left { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .print-title { font-size: 17px; font-weight: 800; color: #111; letter-spacing: 0.01em; }
+  .print-sub { font-size: 10px; color: #444; font-weight: 400; letter-spacing: 0.01em; }
+  .print-meta { display: flex; flex-direction: row; align-items: center; gap: 0; font-size: 11px; color: #111; font-weight: 600; flex-shrink: 0; }
+  .print-meta span { display: flex; align-items: center; white-space: nowrap; }
+  .print-meta span + span::before { content: ' | '; color: #777; padding: 0 7px; font-weight: 400; }
+  .print-meta strong { color: #111; font-size: 11px; font-weight: 800; margin-left: 3px; }
+
+  /* LAYOUT */
+  .page-body { padding: 0; gap: 12px; max-width: 100%; }
+
+  /* SECTIONS */
+  .sec { border: 1px solid #aaa !important; background: #fff !important; border-radius: 0 !important; margin-bottom: 0; }
+  .sec-head { background: #e0e0e0 !important; border-bottom: 1px solid #aaa !important; padding: 6px 14px !important; }
+  .sec-icon { display: none !important; }
+  .sec-title { color: #111 !important; font-size: 11px !important; letter-spacing: 0.06em !important; }
+  .sec-body { padding: 10px 14px !important; }
+
+  /* TABLES */
+  .tbl-wrap, .ov-wrap { overflow: visible !important; max-height: none !important; border: none !important; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  td, th { white-space: normal !important; word-break: break-word !important; overflow: visible !important; text-overflow: unset !important; }
+  thead th { background: #444 !important; color: #fff !important; font-size: 10px !important; padding: 5px 8px !important; border: 1px solid #222 !important; letter-spacing: 0.06em; text-align: center !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead th.th-sub { background: #ddd !important; color: #333 !important; font-size: 9px !important; border: 1px solid #aaa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td { border: 1px solid #bbb !important; color: #111 !important; padding: 5px 8px !important; font-size: 11px !important; vertical-align: middle !important; }
+  tr:last-child td { border-bottom: 1px solid #bbb !important; }
+
+  /* STATION TABLE */
+  #st-table { table-layout: auto !important; }
+  #st-table th:nth-child(1), #st-table td:nth-child(1) { width: 18px !important; min-width: 18px !important; max-width: 18px !important; text-align: center !important; }
+  #st-table th:nth-child(2), #st-table td:nth-child(2) { width: 14% !important; }
+  #st-table th:nth-child(3), #st-table td:nth-child(3) { width: 22% !important; }
+  #st-table th:nth-child(4), #st-table td:nth-child(4) { width: 22% !important; }
+  #st-table th:nth-child(5), #st-table td:nth-child(5) { width: 6% !important; }
+  #st-table th:nth-child(6), #st-table td:nth-child(6) { width: 18% !important; }
+
+  /* STATION NUMBERS */
+  .st-num { color: #111 !important; font-size: 14px !important; }
+
+  /* IMAGES */
+  .prev-img { width: 50px !important; height: 36px !important; border: 1px solid #bbb !important; }
+
+  /* PRINT-VAL SPANS */
+  .print-val { display: block !important; white-space: normal !important; word-break: break-word !important; font-size: 11px !important; color: #111 !important; line-height: 1.6; min-height: 1em; }
+
+  /* SOLUTION / TILES */
+  .sol-inp { display: none !important; }
+  .tiles-row { gap: 10px !important; margin-top: 10px !important; flex-wrap: nowrap !important; }
+  .tile { border: 1.5px solid #aaa !important; background: #f5f5f5 !important; padding: 8px 16px !important; border-radius: 3px !important; flex: 1; }
+  .tile-lbl { font-size: 9px !important; color: #555 !important; }
+  .tile-val { font-size: 18px !important; color: #111 !important; font-weight: 900 !important; }
+  .tile.green { background: #e8f5e9 !important; border-color: #388e3c !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tile.green .tile-val { color: #1b5e20 !important; }
+  .tile.red { background: #ffebee !important; border-color: #c62828 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tile.red .tile-val { color: #b71c1c !important; }
+  .tile.orange { background: #fff8e1 !important; border-color: #f57f17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .tile.orange .tile-val { color: #e65100 !important; }
+  .status-box { border: 1.5px solid #aaa !important; background: #f9f9f9 !important; color: #333 !important; font-size: 11px !important; }
+  .status-box .sb-title { font-size: 12px !important; }
+
+  #sec-sol { break-inside: avoid; }
+  .sol-boxes-row { display: flex !important; gap: 10px !important; margin-top: 8px !important; flex-wrap: wrap; }
+  .sol-box-left { flex: 1; min-width: 200px; }
+  .sol-box-left .status-box { margin-top: 0 !important; }
+  .vorgabe-box {
+    flex: 1; min-width: 200px;
+    border: 1.5px solid #bbb !important;
+    background: #fffdf0 !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .vb-title { font-size: 9px !important; color: #555 !important; }
+  .vb-hint { font-size: 8px !important; color: #666 !important; }
+  .vb-entry { font-size: 10px !important; color: #111 !important; }
+  .vb-label { color: #111 !important; }
+  .vb-val { color: #333 !important; font-weight: 800 !important; }
+  .vb-none, .vb-empty { color: #888 !important; }
+  /* COMBINED OVERVIEW: hide screen, show split */
+  #sec-ov { display: none !important; }
+  .print-only { display: block !important; }
+
+  /* FUNKKANÄLE: center printed values */
+  #funk-tbody td { text-align: center !important; }
+  #funk-tbody td .print-val { text-align: center !important; font-size: 12px !important; display: block !important; }
+
+  /* PRINT-ONLY OVERVIEW: border and header like Lösungssatz */
+  #print-ov-split {
+    border: 1px solid #aaa !important;
+    border-radius: 0 !important;
+    overflow: hidden;
+  }
+  .print-ov-head {
+    background: #e0e0e0 !important;
+    border-bottom: 1px solid #aaa !important;
+    padding: 6px 14px !important;
+    margin-bottom: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-ov-head-title { font-size: 11px !important; }
+  .print-ov-inner { padding: 10px 14px; }
+
+  /* PRINT-ONLY OVERVIEW STYLES */
+  .print-ov-head { display: flex; justify-content: space-between; align-items: center; padding: 0 0 8px 0; margin-bottom: 12px; border-bottom: 2px solid #111; }
+  .print-ov-head-title { font-size: 14px; font-weight: 800; color: #111; letter-spacing: 0.05em; text-transform: uppercase; }
+  .print-ov-subtitle { font-size: 11px; font-weight: 700; color: #111; margin: 14px 0 5px 0; padding-bottom: 3px; border-bottom: 1px solid #aaa; letter-spacing: 0.04em; text-transform: uppercase; }
+  .print-ov-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 14px; }
+  .print-ov-table thead th { background: #444 !important; color: #fff !important; font-size: 10px !important; padding: 5px 9px !important; border: 1px solid #222 !important; text-align: center !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-ov-table thead th.sub { background: #ddd !important; color: #333 !important; font-size: 9px !important; border: 1px solid #aaa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-ov-table td { border: 1px solid #bbb !important; padding: 5px 9px !important; font-size: 11px !important; color: #111 !important; }
+  .print-ov-table .td-pos { text-align: center; font-weight: 700; font-size: 12px; }
+  .print-ov-table .td-addr { text-align: left; }
+  .print-ov-table .td-ltr { text-align: right; font-weight: 900; font-size: 14px; }
+  .print-ov-table .td-sym { text-align: right; font-size: 10px; color: #555; font-style: italic; }
+  .print-ov-table .td-dash { text-align: right; font-size: 10px; color: #aaa; }
+  .print-ov-grp { border-left: 2px solid #888 !important; }
+
+  /* URL */
+  .url-entry { margin-bottom: 3px !important; }
+  .url-row { display: flex !important; }
+  /* Karte + Overlay + gesamter Station-generieren-Bereich nicht drucken */
+  .sg-map-wrap, .sg-map-body, dialog#sg-map-dlg, .leaflet-container { display: none !important; }
+  #sec-sg { display: none !important; }
+}
+
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .page-body { padding: 14px 16px; gap: 16px; }
+  .sec-body { padding: 14px 16px; }
+  .sec-head { padding: 12px 16px; }
+  .hdr-brand h1 { font-size: 0.92rem; }
+}
+@media (max-width: 600px) {
+  .hdr-btns .btn { padding: 6px 8px; font-size: 0.7rem; }
+  .meta-inp { width: 110px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header class="site-header no-print">
+  <div class="hdr-inner">
+    <div class="hdr-brand">
+      <input type="text" id="inp-title" class="title-inp" placeholder="▸ Titel der Funkübung eintragen …" maxlength="80">
+      <div class="sub">Planungstool für Funkübungen mit automatischer Routen- und Buchstabengenerierung &nbsp;·&nbsp; <span id="hdr-version" style="color:#888;font-weight:600"></span></div>
+    </div>
+    <div class="hdr-meta">
+      <div class="meta-grp">
+        <span class="meta-lbl">Unterrichtsdatum</span>
+        <input type="text" id="inp-date" class="meta-inp" placeholder="Unterrichtsdatum eintragen">
+      </div>
+      <div class="meta-grp">
+        <span class="meta-lbl">Unterrichtsbeginn</span>
+        <input type="text" id="inp-time" class="meta-inp" placeholder="Unterrichtsbeginn eintragen">
+      </div>
+    </div>
+    <div class="hdr-btns">
+      <button class="btn btn-ghost btn-sm" onclick="resetAll()">🗑 Neue Funkübung erstellen</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Übung exportieren</button>
+      <button class="btn btn-ghost btn-sm" onclick="triggerImport()">⬆ Übung importieren</button>
+      <button class="btn btn-sm" onclick="printWithTitle()">🖨 Drucken / PDF</button>
+      <button class="btn btn-handbuch btn-sm no-print" onclick="openHandbuch()">📖 Handbuch</button>
+    </div>
+  </div>
+</header>
+
+<input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<!-- PRINT ONLY HEADER -->
+<div class="print-header" id="print-header">
+  <div class="print-left">
+    <div class="print-title" id="ph-title"></div>
+    <div class="print-sub" id="ph-sub"></div>
+  </div>
+  <div class="print-meta">
+    <span>Unterrichtsdatum: <strong id="ph-date"></strong></span>
+    <span>Unterrichtsbeginn: <strong id="ph-time"></strong></span>
+  </div>
+</div>
+<div class="page-body">
+
+  <!-- ── FUNKKANÄLE ── -->
+  <div class="sec">
+    <div class="sec-head">
+      <div class="sec-icon">📡</div>
+      <span class="sec-title">Funkkanäle</span>
+    </div>
+    <div class="sec-body">
+      <div class="tbl-wrap">
+        <table id="funk-table">
+          <thead><tr>
+            <th>TMO-Rufgruppe</th>
+            <th>DMO-Rufgruppe</th>
+            <th class="no-print" style="width:80px">Aktion</th>
+          </tr></thead>
+          <tbody id="funk-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec-foot no-print">
+      <button class="btn btn-sm" onclick="addFunk()">＋ Funkkanal hinzufügen</button>
+    </div>
+  </div>
+
+  <!-- ── AUFGABEN & LAGEBILDER ── -->
+  <div class="sec">
+    <div class="sec-head">
+      <div class="sec-icon">🗺</div>
+      <span class="sec-title">Aufgaben &amp; Lagebilder</span>
+    </div>
+    <div class="sec-body" style="padding-bottom:8px">
+      <div class="tbl-wrap">
+        <table id="st-table">
+          <thead><tr>
+            <th style="width:50px">Station</th>
+            <th style="min-width:130px">Adresse</th>
+            <th style="min-width:190px">Aufgabe</th>
+            <th style="min-width:185px">Lagebild-URLs</th>
+            <th style="width:108px">Vorschau</th>
+            <th style="min-width:155px">Stationslink</th>
+            <th class="no-print col-actions" style="width:118px">Aktion</th>
+          </tr></thead>
+          <tbody id="st-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sec-foot no-print">
+      <button class="btn btn-sm" onclick="addStation()">＋ Station hinzufügen</button>
+    </div>
+  </div>
+
+  <!-- ── LÖSUNGSSATZ ── -->
+  <div class="sec" id="sec-sol">
+    <div class="sec-head">
+      <div class="sec-icon">🔑</div>
+      <span class="sec-title">Lösungssatz</span>
+    </div>
+    <div class="sec-body">
+      <input type="text" id="inp-sol" class="sol-inp" placeholder="Lösungssatz eintragen">
+      <div class="tiles-row" id="tiles-row"></div>
+      <div class="sol-boxes-row">
+        <div class="sol-box-left">
+          <div class="status-box hidden" id="sbox-orange"></div>
+          <div class="status-box hidden" id="sbox-red"></div>
+          <div class="status-box hidden" id="sbox-green"></div>
+        </div>
+        <div class="vorgabe-box" id="vorgabe-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KOMBINIERTE ÜBERSICHT ── -->
+  <div class="sec" id="sec-ov">
+    <div class="sec-head">
+      <div class="sec-icon">📊</div>
+      <span class="sec-title">Routen &amp; Buchstaben</span>
+    </div>
+    <div class="sec-body" style="padding:16px 18px">
+      <div class="ov-wrap">
+        <table id="ov-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ELW-KOORDINATION GENERIEREN ── -->
+  <div class="sec no-print">
+    <div class="sec-head">
+      <div class="sec-icon">🚒</div>
+      <span class="sec-title">ELW-Koordination generieren</span>
+    </div>
+    <div class="sec-body">
+      <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:16px">
+        Aus den aktuellen Planungsdaten kann eine separate ELW-Koordinationsseite für die Durchführung der Funkübung erstellt werden.
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="generateELW(4)">🚒 ELW-Seite für 4 Einheiten generieren</button>
+        <button class="btn" onclick="generateELW(5)">🚒 ELW-Seite für 5 Einheiten generieren</button>
+        <button class="btn" onclick="generateELW(6)">🚒 ELW-Seite für 6 Einheiten generieren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATION GENERIEREN ── -->
+  <div class="sec no-print" id="sec-sg">
+    <div class="sec-head">
+      <div class="sec-icon">📍</div>
+      <span class="sec-title">Station generieren</span>
+    </div>
+    <div class="sec-body">
+      <div class="sg-layout">
+
+        <!-- ── LINKE SPALTE ── -->
+        <div class="sg-left">
+
+          <!-- Bereich 1: Station & Koordinaten -->
+          <div class="sg-panel">
+            <div class="sg-panel-head"><span class="sg-ph-dot" style="background:#cc2200"></span>Stationskoordinaten</div>
+            <div class="sg-panel-body">
+              <div class="sg-field">
+                <label class="sg-lbl">Station auswählen</label>
+                <select id="sg-station"></select>
+                <div id="sg-no-station" class="sg-hint hidden">Keine Station mit Adresse vorhanden.</div>
+              </div>
+              <div class="sg-coords-row">
+                <div class="sg-field">
+                  <label class="sg-lbl">Breitengrad</label>
+                  <input type="text" id="sg-lat" placeholder="Breitengrad eintragen">
+                </div>
+                <div class="sg-field">
+                  <label class="sg-lbl">Längengrad</label>
+                  <input type="text" id="sg-lng" placeholder="Längengrad eintragen">
+                </div>
+                <div class="sg-field">
+                  <label class="sg-lbl">Radius in Metern</label>
+                  <input type="text" id="sg-radius" placeholder="Radius in Metern eintragen">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bereich 2: Standard-Testkoordinaten -->
+          <div class="sg-panel">
+            <div class="sg-panel-head"><span class="sg-ph-dot" style="background:#1a6bc7"></span>Standard-Testkoordinaten</div>
+            <div class="sg-panel-body">
+              <div class="sg-toggle-row" id="sg-toggle-wrap">
+                <label class="sg-toggle-switch" for="sg-test-toggle" style="cursor:pointer;flex-shrink:0">
+                  <input type="checkbox" id="sg-test-toggle">
+                  <span class="sg-slider"></span>
+                </label>
+                <span class="sg-toggle-lbl">Standard-Testkoordinaten verwenden</span>
+              </div>
+              <div id="sg-test-info" class="sg-test-info hidden">
+                <div class="sg-ti-hint">ℹ Standard-Testwerte werden verwendet</div>
+                <div class="sg-ti-current" id="sg-ti-current"></div>
+                <div class="sg-ti-grid">
+                  <div class="sg-field">
+                    <label class="sg-lbl">Standard-Breitengrad</label>
+                    <input type="text" id="sg-test-lat" placeholder="Standard-Breitengrad eintragen">
+                  </div>
+                  <div class="sg-field">
+                    <label class="sg-lbl">Standard-Längengrad</label>
+                    <input type="text" id="sg-test-lng" placeholder="Standard-Längengrad eintragen">
+                  </div>
+                  <div class="sg-field">
+                    <label class="sg-lbl">Standard-Radius in Metern</label>
+                    <input type="text" id="sg-test-radius" placeholder="Standard-Radius eintragen">
+                  </div>
+                </div>
+                <div id="sg-test-err" class="sg-ti-msg sg-ti-err hidden"></div>
+                <div id="sg-test-ok" class="sg-ti-msg sg-ti-ok hidden">Standard-Testkoordinaten gespeichert.</div>
+                <button class="btn btn-sm" style="margin-top:8px" onclick="saveSgTestCoords()">💾 Standard-Testkoordinaten speichern</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bereich 3: GitHub-Stationslink -->
+          <div class="sg-panel">
+            <div class="sg-panel-head"><span class="sg-ph-dot" style="background:#4a9eda"></span>GitHub-Stationslink</div>
+            <div class="sg-panel-body">
+              <div style="margin-top:12px">
+                <label class="sg-toggle-row" id="gh-toggle-wrap" style="cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none">
+                  <span class="sg-toggle-switch"><input type="checkbox" id="gh-url-toggle"><span class="sg-slider"></span></span>
+                  <span class="sg-toggle-lbl">GitHub-Basis-URL anpassen</span>
+                </label>
+                <div id="gh-url-box" class="sg-test-info hidden" style="margin-top:10px">
+                  <div class="sg-ti-hint">🔗 GitHub-Basis-URL</div>
+                  <div class="sg-ti-current" id="gh-url-current">Aktuelle GitHub-Basis-URL: Keine gespeichert</div>
+                  <div class="sg-field" style="margin-top:10px">
+                    <label class="sg-lbl">GitHub-Basis-URL</label>
+                    <input type="text" id="gh-url-input" placeholder="https://daniel911211.github.io/TEST/">
+                    <div class="sg-hint" style="margin-top:5px;font-size:0.78rem;color:var(--text-muted)">Basis-URL für automatisch erzeugte Stationslinks.<br>Beispiel: https://daniel911211.github.io/TEST/</div>
+                  </div>
+                  <div id="gh-url-err" class="sg-ti-msg sg-ti-err hidden"></div>
+                  <div id="gh-url-ok" class="sg-ti-msg sg-ti-ok hidden">GitHub-Basis-URL gespeichert.</div>
+                  <div id="gh-links-ok" class="sg-ti-msg sg-ti-ok hidden">Stationslinks wurden erzeugt und eingetragen.</div>
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+                    <button class="btn btn-sm" onclick="saveGithubUrl()">💾 GitHub-URL speichern</button>
+                    <button class="btn btn-sm" onclick="generateStationLinksOnly()" style="margin-left:6px">🔗 Stationslinks erzeugen</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aktion -->
+          <div>
+            <button class="btn" onclick="generateStation()">📍 Stationsseite generieren</button>
+            <div id="sg-error" class="warn-box hidden"></div>
+          </div>
+
+        </div><!-- end sg-left -->
+
+        <!-- ── RECHTE SPALTE: KARTE ── -->
+        <div class="sg-right">
+          <div class="sg-panel">
+            <div class="sg-panel-head">Kartenauswahl – Klick setzt Marker und übernimmt Koordinaten</div>
+            <div class="sg-panel-body">
+              <div id="sg-map"></div>
+            </div>
+          </div>
+        </div><!-- end sg-right -->
+
+      </div><!-- end sg-layout -->
+    </div>
+  </div>
+
+<!-- ═══════════ QR-CODES FÜR STATIONEN ═══════════ -->
+<div class="sec no-print" id="sec-qr">
+  <div class="sec-head">
+    <div class="sec-icon">📱</div>
+    <span class="sec-title">QR-Codes für Stationen</span>
+  </div>
+  <div class="sec-body">
+
+    <!-- Steuerung -->
+    <div class="sg-field" style="max-width:340px;margin-bottom:14px">
+      <label class="sg-lbl">Fahrzeug / Gruppe</label>
+      <select id="qr-unit-select"></select>
+    </div>
+
+    <button class="btn" onclick="renderQrCodes()">📱 QR-Codes erzeugen</button>
+
+    <!-- Ausgabe -->
+    <div id="qr-output-wrap" class="hidden">
+      <div class="qr-output-header">
+        <span class="qr-output-title" id="qr-output-title"></span>
+        <button class="btn" onclick="printQrCodes()">🖨️ QR-Codes drucken</button>
+      </div>
+      <div id="qr-output" class="qr-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<!-- ═══════════ LIGHTBOX ═══════════ -->
+<dialog id="lightbox">
+  <div class="lb-inner">
+    <button class="lb-close" id="lb-close">✕</button>
+    <img id="lb-img" src="" alt="Lagebild">
+  </div>
+</dialog>
+
+<!-- ═══════════ HANDBUCH OVERLAY ═══════════ -->
+<div id="hb-overlay" class="hb-overlay" onclick="onHbBackdropClick(event)">
+  <div class="hb-inner">
+    <button class="hb-close" onclick="closeHandbuch()" title="Schließen (ESC)">✕</button>
+    <div class="hb-title">Handbuch – Planungstool Funkübung</div>
+    <div class="hb-version" id="hb-version-line"></div>
+    <div class="hb-toc">
+      <div class="hb-toc-title">Inhalt</div>
+      <div id="hb-toc-links"></div>
+    </div>
+    <div id="hb-chapters"></div>
+    <div class="hb-footer">©Daniel Bender</div>
+  </div>
+</div>
+
+<!-- ═══════════ LAGEBILD-TOAST ═══════════ -->
+<div id="lagebild-toast" class="lagebild-toast">⚠ Hinweis: Stationsseite nach Änderung der Lagebilder neu generieren und hochladen.</div>
+
+<!-- ═══════════ MAP OVERLAY ═══════════ -->
+<dialog id="sg-map-dlg">
+  <div class="sg-map-dlg-inner">
+    <button class="lb-close" onclick="closeSgMapOverlay()" title="Schließen (ESC)">✕</button>
+    <div class="sg-map-dlg-map">
+      <div id="sg-map-big"></div>
+    </div>
+  </div>
+</dialog>
+
+<!-- ═══════════ SCRIPT ═══════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+'use strict';
+
+/* ─── CONFIG ─── */
+const DEFAULT_STATIONS = 8;
+const NUM_UNITS        = 6;
+const STORAGE_KEY      = 'ea_funk_v3';
+const TOOL_VERSION     = 'v8.9';
+const STATION_TEST_COORDS = {  // ← leicht anpassbar
+  lat:    50.432287,
+  lng:    9.6131484,
+  radius: 60
+};
+
+/* ─── STATE ─── */
+let stations = [];   // [{address, task, urls:[{url,assign}], stationLink}]
+let funks    = [];   // [{tmo, dmo}]
+let units    = [];   // [{type:'FHZ'|'Gruppe', name:''}]  length=NUM_UNITS
+
+/* ─── HELPERS ─── */
+const $id = id => document.getElementById(id);
+const getV = id => $id(id)?.value ?? '';
+const setV = (id, v) => { const e = $id(id); if(e) e.value = v ?? ''; };
+const esc  = s => String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const escH = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
+const emptySt = () => ({ address:'', task:'', urls:[{url:'',assign:''}], stationLink:'' });
+const emptyFk = () => ({ tmo:'', dmo:'' });
+const emptyUnit = i => ({ type: 'FHZ', name: '' });
+
+/* ─── UNIT LABEL ─── */
+function unitLabel(i) {
+  const u = units[i];
+  if (!u) return `FHZ ${i+1}`;
+  const base = `${u.type} ${i+1}`;
+  return u.name ? `${base} – ${u.name}` : base;
+}
+
+/* ─── LOCALSTORAGE ─── */
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      title:    getV('inp-title'),
+      date: getV('inp-date'), time: getV('inp-time'),
+      solution: getV('inp-sol'),
+      stations: stations.map(s=>({...s, urls: s.urls.map(u=>({...u}))})),
+      funks:    funks.map(f=>({...f})),
+      units:    units.map(u=>({...u})),
+      sg: {
+        station: getV('sg-station'),
+        lat:     getV('sg-lat'),
+        lng:     getV('sg-lng'),
+        radius:  getV('sg-radius'),
+        useTest: $id('sg-test-toggle')?.checked || false,
+        testCoords: { ...sgTestCoords },
+        githubBaseUrl: githubBaseUrl
+      }
+    }));
+  } catch(e){}
+  /* update print header */
+  const pd = $id('ph-date'), pt = $id('ph-time'), pti = $id('ph-title');
+  if (pd)  pd.textContent  = getV('inp-date')  || '–';
+  if (pt)  pt.textContent  = getV('inp-time')  || '–';
+  if (pti) pti.textContent = getV('inp-title') || '';
+  updateVersionDisplay();
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    setV('inp-title', d.title);
+    setV('inp-date', d.date); setV('inp-time', d.time); setV('inp-sol', d.solution);
+    if (Array.isArray(d.stations) && d.stations.length > 0) {
+      stations = d.stations.map(s => ({
+        address: s.address??'', task: s.task??'',
+        urls: Array.isArray(s.urls) && s.urls.length ? s.urls.map(u=>({url:u.url??'',assign:u.assign??''})) : [{url:'',assign:''}],
+        stationLink: s.stationLink??''
+      }));
+    }
+    if (Array.isArray(d.funks) && d.funks.length) {
+      funks = d.funks.map(f=>({tmo:f.tmo??'',dmo:f.dmo??''}));
+    }
+    if (Array.isArray(d.units) && d.units.length === NUM_UNITS) {
+      units = d.units.map(u=>({type:u.type??'FHZ',name:u.name??''}));
+    }
+    if (d.sg) {
+      setV('sg-lat', d.sg.lat); setV('sg-lng', d.sg.lng); setV('sg-radius', d.sg.radius);
+      const chk = $id('sg-test-toggle'); if (chk) chk.checked = !!d.sg.useTest;
+      if (d.sg.testCoords) {
+        sgTestCoords = { lat: String(d.sg.testCoords.lat||''), lng: String(d.sg.testCoords.lng||''), radius: String(d.sg.testCoords.radius||'') };
+        setV('sg-test-lat', sgTestCoords.lat);
+        setV('sg-test-lng', sgTestCoords.lng);
+        setV('sg-test-radius', sgTestCoords.radius);
+      }
+      if (d.sg.githubBaseUrl) { githubBaseUrl = d.sg.githubBaseUrl; updateGithubUrlDisplay(); }
+    }
+    return true;
+  } catch(e){ return false; }
+}
+
+/* ─── VERSION DISPLAY ─── */
+function updateVersionDisplay() {
+  document.title = 'EA-Funkübung – Feuerwehr Neuhof | Planungstool ' + TOOL_VERSION;
+  const hdrV = $id('hdr-version'); if (hdrV) hdrV.textContent = TOOL_VERSION;
+  const psu  = $id('ph-sub');
+  if (psu) psu.textContent = 'Planungstool für Funkübungen mit automatischer Routen- und Buchstabengenerierung · ' + TOOL_VERSION;
+}
+
+
+function filledStations() {
+  return stations.filter(s => s.address && s.address.trim());
+}
+
+/* ─── UNIT SELECT OPTIONS ─── */
+function unitOptions(selected) {
+  let html = '';
+  for (let i = 0; i < NUM_UNITS; i++) {
+    const val = String(i + 1);
+    const lbl = unitLabel(i);
+    html += `<option value="${val}" ${String(selected) === val ? 'selected' : ''}>${esc(lbl)}</option>`;
+  }
+  return html;
+}
+
+/* ─── FUNKKANÄLE RENDER ─── */
+function renderFunk() {
+  const tb = $id('funk-tbody');
+  tb.innerHTML = '';
+  const n = funks.length;
+  funks.forEach((f, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+
+      <td><input type="text" class="fk-inp" data-i="${i}" data-f="tmo"
+          placeholder="TMO-Rufgruppe eintragen" value="${esc(f.tmo)}"></td>
+      <td><input type="text" class="fk-inp" data-i="${i}" data-f="dmo"
+          placeholder="DMO-Rufgruppe eintragen" value="${esc(f.dmo)}"></td>
+      <td class="no-print"><div class="actions-wrap">
+        <button class="btn-icon danger btn-xs" title="Funkkanal entfernen" ${n<=1?'disabled':''}
+          onclick="removeFunk(${i})">✕</button>
+      </div></td>`;
+    tb.appendChild(tr);
+  });
+}
+function addFunk() { funks.push(emptyFk()); save(); renderFunk(); }
+function removeFunk(i) {
+  if (funks.length <= 1) { alert('Mindestens eine Funkkanal-Zeile muss vorhanden bleiben.'); return; }
+  funks.splice(i,1); save(); renderFunk();
+}
+$id('funk-tbody').addEventListener('input', e => {
+  const el = e.target;
+  if (!el.classList.contains('fk-inp')) return;
+  const i = +el.dataset.i, f = el.dataset.f;
+  if (!isNaN(i) && funks[i]) { funks[i][f] = el.value; save(); }
+});
+
+/* ─── STATIONS RENDER ─── */
+function renderStations() {
+  const tb = $id('st-tbody');
+  tb.innerHTML = '';
+  const n = stations.length;
+  stations.forEach((s, si) => {
+    const tr = document.createElement('tr');
+
+    /* URL entries */
+    const multiUrl = s.urls.length >= 2;
+
+    /* Auto-Assign: bei mehreren URLs Zuordnung 1-basiert nach Position setzen */
+    if (multiUrl) {
+      let changed = false;
+      s.urls.forEach((ue, ui) => {
+        const expected = String(ui + 1);
+        if (ue.assign !== expected) { ue.assign = expected; changed = true; }
+      });
+      if (changed) save();
+    }
+
+    let urlHtml = '';
+    s.urls.forEach((ue, ui) => {
+      const canRemove = s.urls.length > 1;
+      urlHtml += `<div class="url-entry">
+        <div class="url-row">
+          <input type="text" class="url-inp" data-si="${si}" data-ui="${ui}"
+            placeholder="Bild-URL einfügen" value="${esc(ue.url)}">
+          ${canRemove
+            ? `<button class="btn-icon danger btn-xs no-print" title="URL entfernen"
+                onclick="removeUrl(${si},${ui})">✕</button>`
+            : ''}
+        </div>
+        ${multiUrl ? `<div class="url-assign no-print">
+          <select class="url-assign-sel" data-si="${si}" data-ui="${ui}">
+            ${unitOptions(ue.assign)}
+          </select>
+        </div>` : ''}
+      </div>`;
+    });
+    urlHtml += `<button class="btn-icon btn-xs no-print" style="margin-top:4px" onclick="addUrl(${si})">＋ URL</button>`;
+
+    /* Previews */
+    let prevHtml = '<div class="prev-list">';
+    s.urls.forEach((ue, ui) => {
+      const lbl = (s.urls.length >= 2 && ue.assign && ue.assign !== '') ? unitLabel(parseInt(ue.assign) - 1) : '';
+      if (!ue.url || !ue.url.trim()) {
+        prevHtml += `<div class="prev-item">${lbl?`<span class="prev-lbl">${esc(lbl)}</span>`:''}
+          <span class="prev-none">Kein Lagebild hinterlegt</span></div>`;
+      } else {
+        const safeUrl = esc(ue.url);
+        prevHtml += `<div class="prev-item">
+          ${lbl?`<span class="prev-lbl">${esc(lbl)}</span>`:''}
+          <img class="prev-img" src="${safeUrl}"
+            onclick="openLB('${safeUrl}')"
+            onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'prev-err',textContent:'Bild konnte nicht geladen werden'}))"
+            title="Klicken zum Vergrößern" alt="Lagebild"></div>`;
+      }
+    });
+    prevHtml += '</div>';
+
+    /* Stationslink button */
+    const hasLink = s.stationLink && s.stationLink.trim();
+    const linkBtn = hasLink
+      ? `<button class="btn-icon open-link btn-xs no-print" title="Stationslink öffnen"
+           data-href="${esc(s.stationLink)}" onclick="window.open(this.dataset.href,'_blank')">🔗 Link öffnen</button>`
+      : '';
+
+    tr.innerHTML = `
+      <td><span class="st-num">${si+1}</span></td>
+      <td><input type="text" class="st-inp" data-si="${si}" data-f="address"
+          placeholder="Adresse eintragen" value="${esc(s.address)}"></td>
+      <td><input type="text" class="st-inp" data-si="${si}" data-f="task"
+          placeholder="Aufgabe eintragen" value="${esc(s.task)}"></td>
+      <td>${urlHtml}</td>
+      <td class="col-preview">${prevHtml}</td>
+      <td><input type="text" class="st-inp" data-si="${si}" data-f="stationLink"
+          placeholder="Link zur Stationsaufgabe einfügen" value="${esc(s.stationLink)}">
+          <div class="station-link-actions" style="margin-top:4px">${linkBtn}</div></td>
+      <td class="no-print col-actions"><div class="actions-wrap">
+        <button class="btn-icon btn-xs" title="Nach oben" ${si===0?'disabled':''}
+          onclick="moveSt(${si},-1)">↑</button>
+        <button class="btn-icon btn-xs" title="Nach unten" ${si===n-1?'disabled':''}
+          onclick="moveSt(${si},1)">↓</button>
+        <button class="btn-icon danger btn-xs" title="Station entfernen" ${n<=1?'disabled':''}
+          onclick="removeSt(${si})">✕</button>
+      </div></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* Station input delegation */
+$id('st-tbody').addEventListener('input', e => {
+  const el = e.target;
+  if (el.classList.contains('st-inp')) {
+    const si = +el.dataset.si, f = el.dataset.f;
+    if (!isNaN(si) && stations[si] !== undefined) {
+      stations[si][f] = el.value;
+      if (f === 'address') { renderStationSelect(); }
+      if (f === 'stationLink') {
+        /* Nur Link-Button in dieser Zeile aktualisieren, kein Voll-Render */
+        const row = el.closest('tr');
+        const linkArea = row ? row.querySelector('.station-link-actions') : null;
+        if (linkArea) {
+          const link = el.value.trim();
+          linkArea.innerHTML = link
+            ? `<button class="btn-icon open-link btn-xs no-print" title="Stationslink öffnen"
+                 data-href="${esc(link)}" onclick="window.open(this.dataset.href,'_blank')">🔗 Link öffnen</button>`
+            : '';
+        }
+      }
+      save(); renderDerived();
+    }
+  }
+  if (el.classList.contains('url-inp')) {
+    /* Hinweis wenn vorhandener Link geändert wird */
+    const orig = el.dataset.originalUrl ?? '';
+    const curr = el.value.trim();
+    if (orig !== '' && orig !== curr) showLagebildChangeNotice();
+
+    const si = +el.dataset.si, ui = +el.dataset.ui;
+    if (!isNaN(si) && !isNaN(ui) && stations[si]?.urls[ui] !== undefined) {
+      stations[si].urls[ui].url = el.value;
+      /* re-render preview inline */
+      const tr = el.closest('tr');
+      const prevCell = tr.querySelector('.col-preview');
+      if (prevCell) {
+        const s = stations[si];
+        let ph = '<div class="prev-list">';
+        s.urls.forEach((ue,xui)=>{
+          const lbl = (s.urls.length>=2 && ue.assign && ue.assign!=='') ? unitLabel(parseInt(ue.assign)-1) : '';
+          if (!ue.url||!ue.url.trim()) {
+            ph += `<div class="prev-item">${lbl?`<span class="prev-lbl">${esc(lbl)}</span>`:''}
+              <span class="prev-none">Kein Lagebild hinterlegt</span></div>`;
+          } else {
+            const su=esc(ue.url);
+            ph += `<div class="prev-item">${lbl?`<span class="prev-lbl">${esc(lbl)}</span>`:''}
+              <img class="prev-img" src="${su}" onclick="openLB('${su}')"
+              onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'prev-err',textContent:'Bild konnte nicht geladen werden'}))"
+              title="Klicken zum Vergrößern" alt="Lagebild"></div>`;
+          }
+        });
+        ph += '</div>';
+        prevCell.innerHTML = ph;
+      }
+      save(); renderDerived();
+    }
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════
+   HANDBUCH – Inhalt hier anpassen
+   ═══════════════════════════════════════════════════════════ */
+const HANDBUCH_KAPITEL = [
+  {
+    id: 'hb1', titel: '1. Zweck des Planungstools',
+    html: `<p>Das Planungstool dient zur Planung und Durchführung einer Funkübung mit Stationen, QR-Codes und ELW-Koordination.</p>
+<p>Mit dem Tool können Stationen angelegt, Aufgaben vorbereitet, Lagebilder hinterlegt, QR-Codes erzeugt und eine separate ELW-Koordinationsseite erstellt werden.</p>`
+  },
+  {
+    id: 'hb2', titel: '2. Grundprinzip der Übung',
+    html: `<p>Die Funkübung besteht aus mehreren Stationen. Jede Station besitzt eine Adresse und eine Aufgabe. Optional können Lagebilder zur Station hinterlegt werden.</p>
+<p>Die Fahrzeuge oder Gruppen fahren die Stationen in einer vorgegebenen Reihenfolge an. Die Reihenfolge wird im Planungstool automatisch in der Übersicht <strong>„Routen &amp; Buchstaben"</strong> dargestellt.</p>
+<p>Die Koordination der Fahrzeuge oder Gruppen erfolgt durch den Übungsleiter oder durch die Mannschaft des ELW. Dafür kann die erzeugte ELW-Koordinationsseite genutzt werden.</p>
+<p>Für jede Station kann eine eigene Stationsseite erstellt werden. Diese Stationsseite wird später über einen QR-Code geöffnet. Nach erfolgreicher Standortprüfung werden die Aufgabe und das passende Lagebild angezeigt.</p>`
+  },
+  {
+    id: 'hb3', titel: '3. Vorbereitung',
+    html: `<p>Zu Beginn werden die Grunddaten der Funkübung eingetragen:</p>
+<ul>
+  <li>Titel der Funkübung</li>
+  <li>Unterrichtsdatum</li>
+  <li>Unterrichtsbeginn</li>
+  <li>Funkkanäle</li>
+  <li>Fahrzeuge oder Gruppen</li>
+  <li>Stationen mit Adresse und Aufgabe</li>
+  <li>optional Lagebilder zu den Stationen</li>
+  <li>Lösungssatz</li>
+</ul>
+<p>Die Fahrzeuge oder Gruppen werden in der Übersicht „Routen &amp; Buchstaben" benannt. Dort kann eingestellt werden, ob es sich um ein Fahrzeug oder eine Gruppe handelt. Zusätzlich kann ein individueller Name eingetragen werden.</p>`
+  },
+  {
+    id: 'hb4', titel: '4. Aufgaben &amp; Lagebilder',
+    html: `<p>Im Bereich „Aufgaben &amp; Lagebilder" werden die Stationen angelegt. Für jede Station können folgende Angaben eingetragen werden:</p>
+<ul>
+  <li><strong>Adresse</strong> – der Zielort der Station</li>
+  <li><strong>Aufgabe</strong> – der Auftrag, der nach erfolgreicher Standortprüfung angezeigt wird</li>
+  <li><strong>Lagebild-URL</strong> – ein Bild oder Lageplan zur Station</li>
+  <li><strong>Stationslink</strong> – der GitHub-Link zur generierten Stationsseite</li>
+</ul>
+<p>Ist nur ein Lagebild vorhanden, wird dieses automatisch angezeigt. Sind mehrere Lagebilder bei einer Station vorhanden, muss jedes Lagebild über das Auswahlfeld einer Einheit zugeordnet werden.</p>
+<div class="hb-example"><div class="hb-example-title">Beispiel – Lagebildzuordnung</div>Lagebild 1 → Fahrzeug / Gruppe 1<br>Lagebild 2 → Fahrzeug / Gruppe 2<br>Lagebild 3 → Fahrzeug / Gruppe 3</div>
+<div class="hb-note"><strong>Hinweis:</strong> Wenn eine bereits vorhandene Lagebild-URL geändert wird, erscheint ein Hinweis. Danach sollte die Stationsseite neu generiert und wieder hochgeladen werden.</div>`
+  },
+  {
+    id: 'hb5', titel: '5. Station generieren',
+    html: `<p>Im Bereich „Station generieren" wird aus einer geplanten Station eine eigene Stationsseite erstellt.</p>
+<p>Zuerst wird die gewünschte Station ausgewählt. Anschließend werden die Koordinaten für die Standortprüfung festgelegt. Die Koordinaten können über die Karte gesetzt oder manuell eingetragen werden.</p>
+<p>Zusätzlich wird ein Radius in Metern eingetragen. Innerhalb dieses Radius gilt der Standort als richtig.</p>
+<p>Für Testzwecke können Standard-Testkoordinaten verwendet werden. Dadurch kann eine Station geprüft werden, ohne sich tatsächlich am Einsatzort zu befinden.</p>
+<div class="hb-note"><strong>Hinweis:</strong> Ist der Schalter eingeschaltet, werden beim Generieren der Stationsseite die gespeicherten Standard-Testkoordinaten übernommen.</div>
+<p>Damit der Stationslink automatisch erzeugt werden kann, muss die GitHub-Basis-URL eingetragen sein. Nach dem Generieren wird die HTML-Datei der Station gespeichert und muss bei GitHub hochgeladen werden.</p>
+<p>Der erzeugte Stationslink ist im Bereich „Aufgaben &amp; Lagebilder" in der Spalte „Stationslink" zu finden.</p>`
+  },
+  {
+    id: 'hb6', titel: '6. QR-Codes für Stationen',
+    html: `<p>Im Bereich „QR-Codes für Stationen" können für die Fahrzeuge oder Gruppen passende QR-Codes erstellt werden.</p>
+<p>Dazu wird zuerst das gewünschte Fahrzeug oder die gewünschte Gruppe ausgewählt. Danach werden die QR-Codes erzeugt und können anschließend gedruckt werden.</p>
+<p>Die Reihenfolge der QR-Codes richtet sich automatisch nach der geplanten Reihenfolge aus der Übersicht „Routen &amp; Buchstaben".</p>
+<p>Die ausgedruckten QR-Codes können den jeweiligen Fahrzeugen oder Gruppen mitgegeben werden.</p>`
+  },
+  {
+    id: 'hb7', titel: '7. ELW-Koordination',
+    html: `<p>Im Bereich „ELW-Koordination generieren" kann eine separate ELW-Seite für die Durchführung der Funkübung erstellt werden.</p>
+<p>Dabei kann ausgewählt werden, ob die Durchführung mit 4, 5 oder 6 Fahrzeugen oder Gruppen erfolgt.</p>
+<div class="hb-example"><div class="hb-example-title">Einheiten</div>Durchführung mit 4 Einheiten = 4 Fahrzeuge oder Gruppen<br>Durchführung mit 5 Einheiten = 5 Fahrzeuge oder Gruppen<br>Durchführung mit 6 Einheiten = 6 Fahrzeuge oder Gruppen</div>
+<p>Die erzeugte ELW-Seite zeigt für jede Einheit die vorgesehene Stationsreihenfolge mit Adresse, Aufgabe, Positionscode und Status.</p>
+<p>Der Positionscode wird für die Zuordnung und Freischaltung der Buchstaben verwendet, die durch die Fahrzeuge oder Gruppen an den jeweiligen Stationen erarbeitet werden. Der Code zeigt an, in welchem Wort und an welcher Position sich der jeweilige Buchstabe im Lösungssatz befindet.</p>
+<div class="hb-example"><div class="hb-example-title">Beispiel – Positionscode</div>W2/P3 bedeutet Wort 2 / Position 3</div>
+<p>Während der Übung können Aufträge als „Auftrag erteilt" oder „Auftrag beendet" markiert werden.</p>`
+  },
+  {
+    id: 'hb8', titel: '8. Export / Import',
+    html: `<p>Über <strong>„Übung exportieren"</strong> kann die aktuelle Planung als Datei gespeichert werden. Diese Exportdatei dient zur Sicherung der Übung und kann später wieder importiert werden.</p>
+<p>Über <strong>„Übung importieren"</strong> kann eine gespeicherte Planung wieder geladen und weiterbearbeitet werden.</p>
+<div class="hb-note"><strong>Hinweis:</strong> Es ist sinnvoll, vor größeren Änderungen eine Exportdatei zu erstellen.</div>`
+  }
+];
+/* ═══════════════════════════════════════════════════════════ */
+
+function openHandbuch() {
+  const overlay = $id('hb-overlay');
+  if (!overlay) return;
+  const vl = $id('hb-version-line');
+  if (vl) vl.textContent = 'Version ' + TOOL_VERSION;
+  const footer = overlay.querySelector('.hb-footer');
+  if (footer) footer.textContent = 'Handbuch ' + TOOL_VERSION + ' · © Daniel Bender';
+  const toc  = $id('hb-toc-links');
+  const body = $id('hb-chapters');
+  if (toc && body && !body.children.length) {
+    let tocHtml = '', chapHtml = '';
+    HANDBUCH_KAPITEL.forEach(k => {
+      tocHtml  += `<a href="#${k.id}">${k.titel}</a>`;
+      chapHtml += `<div class="hb-chapter">
+        <div class="hb-chapter-title" id="${k.id}">${k.titel}</div>
+        <div class="hb-chapter-text">${k.html}</div>
+      </div>`;
+    });
+    toc.innerHTML  = tocHtml;
+    body.innerHTML = chapHtml;
+  }
+  overlay.classList.add('open');
+  overlay.scrollTop = 0;
+}
+
+function closeHandbuch() {
+  const overlay = $id('hb-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function onHbBackdropClick(e) {
+  if (e.target === $id('hb-overlay')) closeHandbuch();
+}
+
+/* ESC schließt Handbuch */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $id('hb-overlay')?.classList.contains('open')) closeHandbuch();
+});
+
+/* ─── LAGEBILD-ÄNDERUNGS-HINWEIS ─── */
+let _lbToastTimer = null;
+function showLagebildChangeNotice() {
+  const toast = $id('lagebild-toast');
+  if (!toast) return;
+  toast.style.display = 'block';
+  if (_lbToastTimer) clearTimeout(_lbToastTimer);
+  _lbToastTimer = setTimeout(() => {
+    toast.style.display = 'none';
+    _lbToastTimer = null;
+  }, 4000);
+}
+
+/* focusin auf st-tbody: Originalwert merken für url-inp */
+$id('st-tbody').addEventListener('focusin', e => {
+  const el = e.target;
+  if (el.classList.contains('url-inp')) {
+    el.dataset.originalUrl = el.value.trim();
+  }
+});
+
+
+$id('st-tbody').addEventListener('change', e => {
+  const el = e.target;
+  if (el.classList.contains('url-assign-sel')) {
+    const si = +el.dataset.si, ui = +el.dataset.ui;
+    if (!isNaN(si) && !isNaN(ui) && stations[si]?.urls[ui] !== undefined) {
+      stations[si].urls[ui].assign = el.value;
+      save(); renderStations(); renderDerived();
+    }
+  }
+});
+
+function addStation() { stations.push(emptySt()); save(); renderStations(); renderStationSelect(); renderDerived(); }
+function removeSt(i) {
+  if (stations.length <= 1) { alert('Mindestens eine Station muss vorhanden bleiben.'); return; }
+  if (!confirm('Diese Station wirklich entfernen?')) return;
+  stations.splice(i,1); save(); renderStations(); renderStationSelect(); renderDerived();
+}
+function moveSt(i, d) {
+  const ni = i+d;
+  if (ni<0||ni>=stations.length) return;
+  [stations[i],stations[ni]]=[stations[ni],stations[i]];
+  save(); renderStations(); renderStationSelect(); renderDerived();
+}
+function addUrl(si) {
+  if (!stations[si]) return;
+  stations[si].urls.push({url:'',assign:''});
+  save(); renderStations(); renderDerived();
+}
+function removeUrl(si, ui) {
+  if (!stations[si]||stations[si].urls.length<=1) return;
+  stations[si].urls.splice(ui,1);
+  save(); renderStations(); renderDerived();
+}
+
+/* ─── OVERVIEW UNIT HEADER INPUTS ─── */
+function renderOvUnitHeaders() {
+  // These are rendered inside the overview table thead
+}
+
+/* ─── DERIVED ─── */
+function renderDerived() {
+  const filled = filledStations();
+  const nRows  = filled.length;
+  const sol    = getV('inp-sol');
+  const chars  = [...sol];
+  const ist    = chars.length;
+  const soll   = NUM_UNITS * nRows;
+  const diff   = soll - ist;
+
+  /* rotations */
+  const rotations = Array.from({length:NUM_UNITS},(_,v)=>
+    Array.from({length:nRows},(_,p)=>filled[(v+p)%nRows]||null));
+  /* letters */
+  const letters = Array.from({length:NUM_UNITS},()=>Array(nRows).fill(''));
+  let ci=0;
+  outer: for(let v=0;v<NUM_UNITS;v++){
+    for(let p=0;p<nRows;p++){
+      if(ci>=chars.length) break outer;
+      letters[v][p]=chars[ci++];
+    }
+  }
+
+  renderTiles(soll, ist, sol);
+  renderStatusBoxes(soll, ist, sol);
+  renderOverview(rotations, letters, nRows);
+  renderVorgabe(sol, nRows);
+  renderQrUnitSelect();
+}
+
+/* ─── TILES ─── */
+function renderTiles(soll, ist, sol) {
+  const row = $id('tiles-row');
+  const empty = !sol;
+  const diff = soll - ist;
+  let statusClass='', statusVal='-';
+  if (!empty) {
+    if (diff>0)  { statusClass='orange'; statusVal=`Fehlen: ${diff}`; }
+    if (diff<0)  { statusClass='red';    statusVal=`Zu viel: ${Math.abs(diff)}`; }
+    if (diff===0){ statusClass='green';  statusVal='Vollständig'; }
+  }
+  const sollClass = (!empty && diff===0) ? 'green' : '';
+  const istClass  = (!empty && diff===0) ? 'green' : (!empty && diff<0) ? 'red' : '';
+
+  row.innerHTML = `
+    <div class="tile ${sollClass}">
+      <span class="tile-lbl">SOLL</span>
+      <span class="tile-val">${soll}</span>
+    </div>
+    <div class="tile ${istClass}">
+      <span class="tile-lbl">IST</span>
+      <span class="tile-val">${ist}</span>
+    </div>
+    <div class="tile ${statusClass}">
+      <span class="tile-lbl">STATUS</span>
+      <span class="tile-val" style="font-size:${statusVal.length>10?'0.85rem':'1.4rem'}">${escH(statusVal)}</span>
+    </div>`;
+}
+
+/* ─── STATUS BOXES ─── */
+function renderStatusBoxes(soll, ist, sol) {
+  const bO = $id('sbox-orange');
+  const bR = $id('sbox-red');
+  const bG = $id('sbox-green');
+  bO.classList.add('hidden'); bR.classList.add('hidden'); bG.classList.add('hidden');
+  if (!sol) return;
+  const diff = soll - ist;
+  if (diff > 0) {
+    bO.className = 'status-box orange';
+    bO.innerHTML = `<span class="sb-title">⚠ Hinweis: Der Lösungssatz ist zu kurz.</span>
+      <span class="sb-text">Es fehlen noch Zeichen, damit alle Felder belegt sind.</span>
+      <div class="sb-detail">SOLL: ${soll} Zeichen &nbsp;|&nbsp; IST: ${ist} Zeichen &nbsp;|&nbsp; Fehlen: ${diff} Zeichen</div>`;
+  } else if (diff < 0) {
+    bR.className = 'status-box red';
+    bR.innerHTML = `<span class="sb-title">✕ Fehler: Der Lösungssatz ist zu lang.</span>
+      <span class="sb-text">Bitte kürzen oder die Anzahl der Stationen/Fahrzeuge erhöhen.</span>
+      <div class="sb-detail">SOLL: ${soll} Zeichen &nbsp;|&nbsp; IST: ${ist} Zeichen &nbsp;|&nbsp; Zu viel: ${Math.abs(diff)} Zeichen</div>`;
+  } else {
+    bG.className = 'status-box green';
+    bG.innerHTML = `<span class="sb-title">✔ Vollständig: Alle Felder sind belegt.</span>
+      <span class="sb-text">Der Lösungssatz passt exakt auf alle verfügbaren Felder.</span>
+      <div class="sb-detail">SOLL: ${soll} Zeichen &nbsp;|&nbsp; IST: ${ist} Zeichen &nbsp;|&nbsp; Status: Vollständig</div>`;
+  }
+}
+
+/* ─── CHAR DISPLAY ─── */
+function charDisplay(ch) {
+  if (ch === ' ') return `<span class="ov-space">␣<br><small>Leerzeichen</small></span>`;
+  if (ch === '.') return `<span class="ov-punkt">.<br><small>Punkt</small></span>`;
+  if (ch) return `<span class="ov-letter">${escH(ch)}</span>`;
+  return `<span class="ov-empty">-</span>`;
+}
+
+/* ─── OVERVIEW TABLE ─── */
+function renderOverview(rotations, letters, nRows) {
+  const tbl = $id('ov-table');
+  if (nRows === 0) {
+    tbl.innerHTML = `<tr><td class="ov-no-data">Keine Stationen mit Adressen vorhanden.<br>Bitte im Abschnitt „Aufgaben &amp; Lagebilder" Adressen eintragen.</td></tr>`;
+    return;
+  }
+
+  /* header row 1 – unit labels with inputs */
+  let h1 = `<tr>
+    <th rowspan="2" style="background:#1a1a1a;color:var(--red);text-align:center;min-width:36px;font-size:1rem">Station</th>`;
+  for (let v=0; v<NUM_UNITS; v++) {
+    const u = units[v];
+    const typeOpts = `
+      <option value="FHZ"   ${u.type==='FHZ'   ?'selected':''}>FHZ ${v+1}</option>
+      <option value="Gruppe"${u.type==='Gruppe' ?'selected':''}>Gruppe ${v+1}</option>`;
+    h1 += `<th colspan="2" class="${v>0?'grp-border':''}" style="min-width:148px">
+      <div class="unit-head-grp no-print">
+        <select class="unit-type-sel" data-v="${v}">${typeOpts}</select>
+        <input type="text" class="unit-name-inp" data-v="${v}"
+          placeholder="Individ. Name (optional)" value="${esc(u.name)}">
+      </div>
+      <div class="unit-label">${escH(unitLabel(v))}</div>
+    </th>`;
+  }
+  h1 += `</tr>`;
+
+  /* header row 2 – Adresse / Buchstabe */
+  let h2 = `<tr>`;
+  for (let v=0; v<NUM_UNITS; v++) {
+    h2 += `<th class="th-sub ${v>0?'grp-border':''}" style="text-align:left">Adresse</th>`;
+    h2 += `<th class="th-sub" style="width:58px;text-align:right">Buchstabe</th>`;
+  }
+  h2 += `</tr>`;
+
+  /* body */
+  let body = '';
+  for (let p=0; p<nRows; p++) {
+    body += `<tr>`;
+    body += `<td class="ov-pos">${p+1}</td>`;
+    for (let v=0; v<NUM_UNITS; v++) {
+      const addr = rotations[v]?.[p]?.address ?? '';
+      const ch   = letters[v]?.[p] ?? '';
+      body += `<td class="ov-addr ${v>0?'grp-border':''}" title="${esc(addr)}">${escH(addr)||'<span class="ov-empty">-</span>'}</td>`;
+      body += `<td class="ov-letter-cell" style="text-align:right">${charDisplay(ch)}</td>`;
+    }
+    body += `</tr>`;
+  }
+
+  tbl.innerHTML = `<thead>${h1}${h2}</thead><tbody>${body}</tbody>`;
+
+  /* attach events to unit header inputs */
+  tbl.querySelectorAll('.unit-type-sel').forEach(sel => {
+    sel.addEventListener('change', e => {
+      const v = +e.target.dataset.v;
+      units[v].type = e.target.value;
+      save(); renderStations(); renderDerived();
+    });
+  });
+  tbl.querySelectorAll('.unit-name-inp').forEach(inp => {
+    /* on every keystroke: only update the label in-place, no full re-render */
+    inp.addEventListener('input', e => {
+      const v = +e.target.dataset.v;
+      units[v].name = e.target.value;
+      save();
+      /* update just the label span next to this input */
+      const lbl = e.target.closest('th')?.querySelector('.unit-label');
+      if (lbl) lbl.textContent = unitLabel(v);
+      /* also refresh assign-dropdowns in stations table in-place */
+      document.querySelectorAll('.url-assign-sel').forEach(sel => {
+        const curVal = sel.value;
+        sel.innerHTML = unitOptions(curVal);
+      });
+    });
+    /* full re-render only when leaving the field */
+    inp.addEventListener('blur', () => {
+      renderStations(); renderDerived();
+    });
+  });
+}
+
+/* ─── SOLUTION INPUT ─── */
+$id('inp-sol').addEventListener('input', () => { save(); renderDerived(); });
+$id('inp-title').addEventListener('input', save);
+
+/* ─── AUTO-FORMAT DATE (TT.MM.JJJJ) ─── */
+$id('inp-date').addEventListener('input', function() {
+  const el   = this;
+  const digits = el.value.replace(/[^0-9]/g, '').slice(0, 8);
+  let out = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i === 2 || i === 4) out += '.';
+    out += digits[i];
+  }
+  el.value = out;
+  save();
+});
+
+/* ─── AUTO-FORMAT TIME (HH:MM) ─── */
+$id('inp-time').addEventListener('input', function() {
+  const el   = this;
+  const digits = el.value.replace(/[^0-9]/g, '').slice(0, 4);
+  let out = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i === 2) out += ':';
+    out += digits[i];
+  }
+  el.value = out;
+  save();
+});
+
+/* ─── LIGHTBOX ─── */
+const dlg = $id('lightbox');
+const lbImg = $id('lb-img');
+function openLB(url) { lbImg.src=url; lbImg.onerror=()=>{lbImg.alt='Bild konnte nicht geladen werden';}; dlg.showModal(); }
+$id('lb-close').addEventListener('click', ()=>dlg.close());
+dlg.addEventListener('click', e=>{ if(e.target===dlg)dlg.close(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'&&dlg.open)dlg.close(); });
+
+/* ─── RESET ─── */
+function resetAll() {
+  if (!confirm('Wirklich alle Eingaben löschen und eine neue Funkübung erstellen?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  setV('inp-title',''); setV('inp-date',''); setV('inp-time',''); setV('inp-sol','');
+  setV('sg-lat',''); setV('sg-lng',''); setV('sg-radius','');
+  setV('sg-test-lat',''); setV('sg-test-lng',''); setV('sg-test-radius','');
+  sgTestCoords = { lat: String(STATION_TEST_COORDS.lat), lng: String(STATION_TEST_COORDS.lng), radius: String(STATION_TEST_COORDS.radius) };
+  const sgChkR = $id('sg-test-toggle'); if(sgChkR) sgChkR.checked = false;
+  updateSgTestInfo();
+  /* Karten-Marker und Radien entfernen */
+  if (sgMarker)        { sgMarker.remove();        sgMarker        = null; }
+  if (sgCircle)        { sgCircle.remove();        sgCircle        = null; }
+  if (sgMarkerBig)     { sgMarkerBig.remove();     sgMarkerBig     = null; }
+  if (sgCircleBig)     { sgCircleBig.remove();     sgCircleBig     = null; }
+  if (sgMarkerTest)    { sgMarkerTest.remove();    sgMarkerTest    = null; }
+  if (sgCircleTest)    { sgCircleTest.remove();    sgCircleTest    = null; }
+  if (sgMarkerTestBig) { sgMarkerTestBig.remove(); sgMarkerTestBig = null; }
+  if (sgCircleTestBig) { sgCircleTestBig.remove(); sgCircleTestBig = null; }
+  stations = Array.from({length:DEFAULT_STATIONS}, emptySt);
+  funks    = [emptyFk()];
+  units    = Array.from({length:NUM_UNITS}, emptyUnit);
+  renderFunk(); renderStations(); renderStationSelect(); renderDerived();
+  save(); /* frischen Grundzustand speichern */
+}
+
+/* ─── EXPORT ─── */
+function exportData() {
+  const data = {
+    _meta: { tool:'EA-Funkuebung-Planungstool', version: TOOL_VERSION },
+    title:    getV('inp-title'),
+    date:     getV('inp-date'),
+    time:     getV('inp-time'),
+    solution: getV('inp-sol'),
+    stations: stations.map(s=>({...s, urls:s.urls.map(u=>({...u}))})),
+    funks:    funks.map(f=>({...f})),
+    units:    units.map(u=>({...u})),
+    sg: {
+      station: getV('sg-station'),
+      lat:     getV('sg-lat'),
+      lng:     getV('sg-lng'),
+      radius:  getV('sg-radius'),
+      useTest: $id('sg-test-toggle')?.checked || false,
+      testCoords: { lat: sgTestCoords.lat, lng: sgTestCoords.lng, radius: sgTestCoords.radius }
+    }
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const rawName = getV('inp-title').trim().replace(/[^a-zA-Z0-9äöüÄÖÜß\- ]/g,'').replace(/ +/g,'_') || 'Export';
+  const rawDate = getV('inp-date').replace(/\./g,'-').replace(/[^0-9\-]/g,'');
+  const fname = ['EA_Funkuebung', rawName, TOOL_VERSION, rawDate].filter(Boolean).join('_') + '.json';
+  const a = Object.assign(document.createElement('a'),{href:url, download:fname});
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ─── IMPORT ─── */
+function triggerImport() { $id('import-file').click(); }
+function handleImport(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      setV('inp-title', d.title);
+      setV('inp-date', d.date); setV('inp-time', d.time); setV('inp-sol', d.solution);
+      if (Array.isArray(d.stations) && d.stations.length) {
+        stations = d.stations.map(s=>({
+          address: s.address??'', task: s.task??'',
+          urls: Array.isArray(s.urls)&&s.urls.length ? s.urls.map(u=>({url:u.url??'',assign:u.assign??''})) : [{url:'',assign:''}],
+          stationLink: s.stationLink??''
+        }));
+      }
+      if (Array.isArray(d.funks)&&d.funks.length) funks = d.funks.map(f=>({tmo:f.tmo??'',dmo:f.dmo??''}));
+      if (Array.isArray(d.units)&&d.units.length===NUM_UNITS) units = d.units.map(u=>({type:u.type??'FHZ',name:u.name??''}));
+      if (d.sg) {
+        setV('sg-lat', d.sg.lat); setV('sg-lng', d.sg.lng); setV('sg-radius', d.sg.radius);
+        const chk = $id('sg-test-toggle'); if (chk) chk.checked = !!d.sg.useTest;
+        if (d.sg.testCoords) {
+          sgTestCoords = { lat: String(d.sg.testCoords.lat||''), lng: String(d.sg.testCoords.lng||''), radius: String(d.sg.testCoords.radius||'') };
+          setV('sg-test-lat', sgTestCoords.lat);
+          setV('sg-test-lng', sgTestCoords.lng);
+          setV('sg-test-radius', sgTestCoords.radius);
+        }
+      }
+      save(); renderFunk(); renderStations(); renderStationSelect(); updateSgTestInfo(); renderDerived();
+      /* Karten-State nach Import wiederherstellen */
+      if (sgMap) {
+        var iLat = parseFloat(getV('sg-lat')), iLng = parseFloat(getV('sg-lng'));
+        if (!isNaN(iLat) && !isNaN(iLng)) {
+          setMapMarker(iLat, iLng);
+        } else {
+          /* Veralteten roten Marker entfernen */
+          if (sgMarker)    { sgMarker.remove();    sgMarker    = null; }
+          if (sgCircle)    { sgCircle.remove();    sgCircle    = null; }
+          if (sgMarkerBig) { sgMarkerBig.remove(); sgMarkerBig = null; }
+          if (sgCircleBig) { sgCircleBig.remove(); sgCircleBig = null; }
+        }
+        updateSgTestMarker();
+      }
+    } catch(err){ alert('Import fehlgeschlagen: '+err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+/* ─── PRINT WITH SUGGESTED FILENAME ─── */
+function printWithTitle() {
+  const origTitle = document.title;
+  const rawTitle = getV('inp-title').trim();
+  const rawDate  = getV('inp-date').trim();
+
+  const safeTitle = rawTitle.replace(/[^a-zA-Z0-9äöüÄÖÜß\- ]/g,'').replace(/ +/g,'_').trim('_');
+  const safeDate  = rawDate.replace(/\./g,'-').replace(/[^0-9\-]/g,'').trim('-');
+
+  const parts = [];
+  if (safeTitle) parts.push(safeTitle);
+  parts.push('Planung');
+  parts.push(TOOL_VERSION);
+  if (safeDate) parts.push(safeDate);
+
+  document.title = parts.join('_');
+  window.print();
+  setTimeout(function(){ document.title = origTitle; }, 2000);
+}
+
+/* ─── STATION GENERATOR ─── */
+let sgTestCoords = { lat: String(STATION_TEST_COORDS.lat), lng: String(STATION_TEST_COORDS.lng), radius: String(STATION_TEST_COORDS.radius) };
+let githubBaseUrl = '';
+
+function renderStationSelect() {
+  const sel = $id('sg-station');
+  const noMsg = $id('sg-no-station');
+  if (!sel) return;
+  const filled = filledStations();
+  const savedIdx = getV('sg-station');
+  sel.innerHTML = '';
+  if (filled.length === 0) {
+    sel.disabled = true;
+    if (noMsg) noMsg.classList.remove('hidden');
+  } else {
+    sel.disabled = false;
+    if (noMsg) noMsg.classList.add('hidden');
+    filled.forEach(st => {
+      const globalIdx = stations.indexOf(st);
+      const opt = document.createElement('option');
+      opt.value = globalIdx;
+      opt.textContent = st.address;
+      if (String(globalIdx) === savedIdx) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function updateSgTestInfoText() {
+  const cur = $id('sg-ti-current');
+  if (cur) cur.textContent = 'Aktuelle Standardwerte: Breitengrad ' + sgTestCoords.lat
+    + ' | Längengrad ' + sgTestCoords.lng + ' | Radius ' + sgTestCoords.radius + ' m';
+}
+
+function updateSgTestInfo() {
+  const chk  = $id('sg-test-toggle');
+  const info = $id('sg-test-info');
+  if (!chk || !info) return;
+  if (chk.checked) {
+    info.classList.remove('hidden');
+    updateSgTestInfoText();
+    if (!getV('sg-test-lat'))    setV('sg-test-lat',    sgTestCoords.lat);
+    if (!getV('sg-test-lng'))    setV('sg-test-lng',    sgTestCoords.lng);
+    if (!getV('sg-test-radius')) setV('sg-test-radius', sgTestCoords.radius);
+  } else {
+    info.classList.add('hidden');
+  }
+  updateSgTestMarker();
+}
+
+function saveSgTestCoords() {
+  const lat = getV('sg-test-lat').trim();
+  const lng = getV('sg-test-lng').trim();
+  const rad = getV('sg-test-radius').trim();
+  const err = $id('sg-test-err');
+  const ok  = $id('sg-test-ok');
+  if (err) err.classList.add('hidden');
+  if (ok)  ok.classList.add('hidden');
+
+  if (!lat || !lng || !rad) {
+    if (err) { err.classList.remove('hidden'); err.textContent = 'Bitte gültige Standard-Testkoordinaten und einen gültigen Standard-Radius eintragen.'; }
+    return;
+  }
+  const latNum = parseFloat(lat), lngNum = parseFloat(lng), radNum = parseFloat(rad);
+  if (isNaN(latNum)) {
+    if (err) { err.classList.remove('hidden'); err.textContent = 'Bitte einen gültigen Standard-Breitengrad eintragen.'; }
+    return;
+  }
+  if (isNaN(lngNum)) {
+    if (err) { err.classList.remove('hidden'); err.textContent = 'Bitte einen gültigen Standard-Längengrad eintragen.'; }
+    return;
+  }
+  if (isNaN(radNum) || radNum <= 0) {
+    if (err) { err.classList.remove('hidden'); err.textContent = 'Bitte einen gültigen Standard-Radius (> 0) in Metern eintragen.'; }
+    return;
+  }
+
+  sgTestCoords = { lat, lng, radius: rad };
+  save();
+  updateSgTestInfoText();
+  updateSgTestMarker();
+  if (ok) { ok.classList.remove('hidden'); setTimeout(function(){ ok.classList.add('hidden'); }, 3000); }
+}
+
+/* ─── GITHUB URL ─── */
+function updateGithubUrlDisplay() {
+  const el = $id('gh-url-current');
+  if (el) el.textContent = 'Aktuelle GitHub-Basis-URL: ' + (githubBaseUrl || 'Keine gespeichert');
+  const inp = $id('gh-url-input');
+  if (inp && !inp.value) inp.value = githubBaseUrl;
+}
+
+function toggleGithubUrlBox() {
+  const box = $id('gh-url-box');
+  const chk = $id('gh-url-toggle');
+  if (!box || !chk) return;
+  if (chk.checked) { box.classList.remove('hidden'); updateGithubUrlDisplay(); }
+  else              { box.classList.add('hidden'); }
+}
+
+function saveGithubUrl() {
+  const err = $id('gh-url-err'), ok = $id('gh-url-ok');
+  if (err) err.classList.add('hidden');
+  if (ok)  ok.classList.add('hidden');
+  let val = ($id('gh-url-input')?.value || '').trim();
+  if (!val) {
+    if (err) { err.textContent = 'Bitte eine GitHub-Basis-URL eintragen.'; err.classList.remove('hidden'); }
+    return;
+  }
+  if (!val.endsWith('/')) val += '/';
+  githubBaseUrl = val;
+  save();
+  updateGithubUrlDisplay();
+  if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 3000); }
+}
+
+
+
+function generateStationLinksOnly() {
+  if (!githubBaseUrl) { alert('Bitte zuerst eine GitHub-Basis-URL speichern.'); return; }
+  const valid = stations.filter(st => st.address && st.address.trim());
+  if (valid.length === 0) { alert('Keine Stationen mit Adresse vorhanden.'); return; }
+  if (!confirm('Alle vorhandenen Stationslinks werden anhand der aktuellen GitHub-Basis-URL neu erzeugt. Fortfahren?')) return;
+  valid.forEach(st => {
+    const fileName = sanitizeFilename(st.address).substring(0, 50) + '.html';
+    st.stationLink = githubBaseUrl + fileName;
+  });
+  save(); renderStations(); renderDerived();
+  const ok = $id('gh-links-ok');
+  if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 3500); }
+}
+
+function sanitizeFilename(str) {
+  return String(str||'')
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue')
+    .replace(/Ä/g,'Ae').replace(/Ö/g,'Oe').replace(/Ü/g,'Ue')
+    .replace(/ß/g,'ss')
+    .replace(/[^a-zA-Z0-9\-]/g,'_')
+    .replace(/_+/g,'_').replace(/^_|_$/g,'');
+}
+
+function buildStationPageData() {
+  const sel     = $id('sg-station');
+  const si      = sel ? parseInt(sel.value) : -1;
+  const st      = (si >= 0 && stations[si]) ? stations[si] : null;
+  const chk     = $id('sg-test-toggle');
+  const useTest = chk && chk.checked;
+  return {
+    stationIdx:  si,
+    stationNum:  si + 1,
+    address:     st ? (st.address||'').trim()  : '',
+    task:        st ? (st.task||'').trim()     : '',
+    urls:        st ? (st.urls||[])            : [],
+    uebungTitle: getV('inp-title').trim() || 'Funkübung',
+    version:     TOOL_VERSION,
+    useTest:     useTest,
+    lat:    useTest ? sgTestCoords.lat    : getV('sg-lat').trim(),
+    lng:    useTest ? sgTestCoords.lng    : getV('sg-lng').trim(),
+    radius: useTest ? sgTestCoords.radius : getV('sg-radius').trim()
+  };
+}
+
+function generateStationHtml(d) {
+  const validUrls = d.urls.filter(u => u.url && u.url.trim());
+
+  /* Lagebilder-Daten für eingebettetes JS */
+  const lbData = JSON.stringify(validUrls.map(u => ({
+    url:    u.url.trim(),
+    assign: (u.assign !== undefined && u.assign !== null) ? String(u.assign) : ''
+  })));
+
+  const css = `
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#0f0f0f;color:#c8c8c8;min-height:100vh}
+.page-header{background:#111;border-bottom:3px solid #8b0000;padding:22px 24px}
+.page-header h1{font-size:2rem;font-weight:900;color:#fff;letter-spacing:-.01em}
+.page-header .meta{font-size:0.78rem;color:#666;margin-top:10px;display:flex;gap:20px;flex-wrap:wrap}
+.page-body{max-width:840px;margin:0 auto;padding:24px 20px 60px;display:flex;flex-direction:column;gap:18px}
+.card{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:8px;overflow:hidden}
+.card-head{background:#111;border-bottom:2px solid #8b0000;padding:11px 18px;font-size:0.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#aaa}
+.card-body{padding:18px}
+.aufgabe{font-size:1.05rem;line-height:1.75;color:#e8e8e8;white-space:pre-wrap;word-break:break-word}
+.lb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.lb-link{display:block;border-radius:6px;overflow:hidden;border:1px solid #2e2e2e;transition:opacity .15s}
+.lb-link:hover{opacity:.85}
+.lb-img{width:100%;display:block;object-fit:cover}
+.status-neutral{color:#888;font-size:0.95rem;padding:4px 0}
+.hint-box{display:none;background:rgba(245,166,35,.10);border:1px solid rgba(245,166,35,.45);color:#f5a623;border-radius:6px;padding:12px 14px;font-size:0.9rem;line-height:1.55;margin-top:12px;word-break:break-word}
+.hint-box.show{display:block}
+.btn-check{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:#8b0000;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s}
+.btn-check:hover{background:#a00000}
+.btn-check:active{background:#700000}
+@media(max-width:600px){.page-header h1{font-size:1.5rem}.lb-grid{grid-template-columns:1fr}}
+`.trim();
+
+  const targetLat    = parseFloat(d.lat);
+  const targetLng    = parseFloat(d.lng);
+  const targetRadius = parseFloat(d.radius);
+
+  const js = `
+var LAGEBILDER = ${lbData};
+
+function _hav(lat1,lon1,lat2,lon2){
+  var R=6371000,dL=(lat2-lat1)*Math.PI/180,dO=(lon2-lon1)*Math.PI/180;
+  var a=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dO/2)*Math.sin(dO/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function _esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function renderLagebilder(){
+  var lb=document.getElementById('lb-area');
+  if(!lb) return;
+  if(LAGEBILDER.length===0){lb.style.display='none';return;}
+
+  var imgs;
+  if(LAGEBILDER.length===1){
+    /* Nur ein Lagebild → immer anzeigen, kein ?fhz nötig */
+    imgs=LAGEBILDER;
+  } else {
+    var qs=new URLSearchParams(location.search);
+    var fhzRaw=(qs.get('fhz')||'').trim();
+    var fhzNum=parseInt(fhzRaw);
+    var hasFhz=!isNaN(fhzNum)&&fhzNum>=1&&fhzNum<=6;
+
+    if(hasFhz){
+      /* Direkt 1-basiert matchen: ?fhz=1 → assign "1" */
+      var target=String(fhzNum);
+      var matched=LAGEBILDER.filter(function(l){return l.assign===target;});
+      if(matched.length>0){
+        imgs=matched;
+      } else {
+        lb.innerHTML='<div class="hint-box show">Kein Lagebild f\u00fcr diese Einheit hinterlegt.</div>';
+        lb.style.display='block';
+        return;
+      }
+    } else {
+      /* Mehrere Lagebilder, kein ?fhz= → Hinweis */
+      lb.innerHTML='<div class="hint-box show">Kein Fahrzeug / keine Gruppe ausgew\u00e4hlt.</div>';
+      lb.style.display='block';
+      return;
+    }
+  }
+
+  if(!imgs||imgs.length===0){lb.style.display='none';return;}
+  var h='<div class="card"><div class="card-head">Lagebilder</div><div class="card-body"><div class="lb-grid">';
+  imgs.forEach(function(l){
+    h+='<a href="'+_esc(l.url)+'" target="_blank" rel="noopener" class="lb-link"><img src="'+_esc(l.url)+'" alt="Lagebild" class="lb-img" loading="lazy"></a>';
+  });
+  h+='</div></div></div>';
+  lb.innerHTML=h;
+  lb.style.display='block';
+}
+
+function showContent(){
+  document.getElementById('start-screen').style.display='none';
+  document.getElementById('content').style.display='block';
+  renderLagebilder();
+}
+
+function checkLocation(){
+  var statusEl=document.getElementById('st-status');
+  var hintEl=document.getElementById('st-hint');
+  statusEl.textContent='Standort wird gepr\u00fcft \u2026';
+  hintEl.className='hint-box';
+
+  if(!navigator.geolocation){
+    statusEl.textContent='Standort noch nicht gepr\u00fcft.';
+    hintEl.textContent='Geolocation wird von diesem Browser nicht unterst\u00fctzt.';
+    hintEl.className='hint-box show';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      var dist=Math.round(_hav(pos.coords.latitude,pos.coords.longitude,${targetLat},${targetLng}));
+      if(dist<=${targetRadius}){showContent();}
+      else{
+        statusEl.textContent='Standort noch nicht gepr\u00fcft.';
+        hintEl.textContent='Du bist ca. '+dist+' m vom Ziel entfernt. Zielradius: ${targetRadius} m';
+        hintEl.className='hint-box show';
+      }
+    },
+    function(){
+      statusEl.textContent='Standort noch nicht gepr\u00fcft.';
+      hintEl.textContent='Standort konnte nicht ermittelt werden oder Zugriff wurde verweigert.';
+      hintEl.className='hint-box show';
+    },
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+}
+`.trim();
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(d.address)}</title>
+<style>${css}</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>${esc(d.address)}</h1>
+  <div class="meta">
+    <span>\u00dcbung: ${esc(d.uebungTitle)}</span>
+    <span>Version: ${esc(d.version)}</span>
+  </div>
+</div>
+
+<!-- Stations-Startseite -->
+<div id="start-screen">
+  <div class="page-body">
+    <div class="card">
+      <div class="card-head">Stations-Startseite</div>
+      <div class="card-body">
+        <p id="st-status" class="status-neutral">Standort noch nicht gepr\u00fcft.</p>
+        <button class="btn-check" onclick="checkLocation()">\uD83D\uDCCD Standort pr\u00fcfen</button>
+        <div id="st-hint" class="hint-box"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Freigeschalteter Inhalt -->
+<div id="content" style="display:none">
+  <div class="page-body">
+    <div class="card">
+      <div class="card-head">Aufgabe</div>
+      <div class="card-body"><div class="aufgabe">${esc(d.task)}</div></div>
+    </div>
+    <div id="lb-area" style="display:none"></div>
+  </div>
+</div>
+
+<script>${js}<\/script>
+</body>
+</html>`;
+}
+
+function downloadStationPage(html, fileName) {
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), {href:url, download:fileName});
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function generateStation() {
+  const err     = $id('sg-error');
+  const chk     = $id('sg-test-toggle');
+  const sel     = $id('sg-station');
+  const useTest = chk && chk.checked;
+  if (err) err.classList.add('hidden');
+
+  /* Station */
+  if (!sel || sel.disabled || !sel.value) {
+    if (err) { err.classList.remove('hidden'); err.innerHTML = '<strong>Hinweis:</strong> Bitte zuerst eine Station auswählen.'; }
+    return;
+  }
+  const si = parseInt(sel.value);
+  const st = stations[si];
+
+  /* Adresse */
+  if (!st || !st.address || !st.address.trim()) {
+    if (err) { err.classList.remove('hidden'); err.innerHTML = '<strong>Hinweis:</strong> Die ausgewählte Station hat keine Adresse. Bitte Adresse eintragen.'; }
+    return;
+  }
+
+  /* Aufgabe – Pflicht */
+  if (!st.task || !st.task.trim()) {
+    if (err) { err.classList.remove('hidden'); err.innerHTML = '<strong>Hinweis:</strong> Bitte für die ausgewählte Station zuerst eine Aufgabe eintragen.'; }
+    return;
+  }
+
+  /* Koordinaten + Radius prüfen */
+  let lat, lng, radius;
+  if (useTest) {
+    lat = parseFloat(sgTestCoords.lat); lng = parseFloat(sgTestCoords.lng); radius = parseFloat(sgTestCoords.radius);
+  } else {
+    lat = parseFloat(getV('sg-lat')); lng = parseFloat(getV('sg-lng')); radius = parseFloat(getV('sg-radius'));
+  }
+  if (isNaN(lat) || isNaN(lng) || isNaN(radius) || radius <= 0) {
+    if (err) { err.classList.remove('hidden'); err.innerHTML = '<strong>Hinweis:</strong> Bitte gültige Koordinaten und einen gültigen Radius für die Standortprüfung eintragen.'; }
+    return;
+  }
+
+  /* Generieren */
+  const data     = buildStationPageData();
+  const html     = generateStationHtml(data);
+  const addrSafe = sanitizeFilename(st.address).substring(0, 50);
+  const fileName = addrSafe + '.html';
+  downloadStationPage(html, fileName);
+
+  /* GitHub-Stationslink erzeugen und in Stationslink-Feld übernehmen */
+  if (!githubBaseUrl) {
+    if (err) { err.classList.remove('hidden'); err.innerHTML = '<strong>Hinweis:</strong> Stationsseite wurde generiert. Bitte GitHub-Basis-URL eintragen, um den Stationslink automatisch zu befüllen.'; }
+  } else {
+    const fullLink = githubBaseUrl + fileName;
+    stations[si].stationLink = fullLink;
+    save();
+    renderStations();
+    renderDerived();
+  }
+}
+
+/* ─── QR-CODES ─── */
+
+function renderQrUnitSelect() {
+  const sel = $id('qr-unit-select');
+  if (!sel) return;
+  const saved = sel.value;
+  sel.innerHTML = '';
+  for (let i = 0; i < NUM_UNITS; i++) {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = unitLabel(i);
+    sel.appendChild(opt);
+  }
+  if (saved !== '') sel.value = saved;
+}
+
+function renderQrCodes() {
+  const unitIdx   = parseInt($id('qr-unit-select')?.value ?? '0');
+  const fhzValue  = unitIdx + 1;
+  const wrap      = $id('qr-output-wrap');
+  const container = $id('qr-output');
+  const titleEl   = $id('qr-output-title');
+  const sel       = $id('qr-unit-select');
+  const unitText  = sel ? (sel.options[sel.selectedIndex]?.textContent || '') : '';
+
+  const filled = filledStations();
+  const nRows  = filled.length;
+
+  if (nRows === 0) { alert('Keine Stationen mit Adresse vorhanden.'); return; }
+
+  /* Reihenfolge wie kombinierte Übersicht */
+  const ordered = Array.from({length: nRows}, (_, p) => filled[(unitIdx + p) % nRows]);
+
+  titleEl.textContent = 'QR-Codes für ' + unitText;
+  container.innerHTML = '';
+
+  ordered.forEach((st, idx) => {
+    /* Gültige Lagebild-URLs dieser Station zählen */
+    const validUrls = (st.urls || []).filter(u => u.url && u.url.trim());
+
+    /* QR-Link zusammensetzen */
+    let link = null;
+    if (st.stationLink && st.stationLink.trim()) {
+      const base = st.stationLink.trim();
+      if (validUrls.length > 1) {
+        const sep = base.includes('?') ? '&' : '?';
+        link = base + sep + 'fhz=' + fhzValue;
+      } else {
+        link = base;
+      }
+    }
+
+    const card = document.createElement('div');
+    card.className = 'qr-card';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'qr-label';
+    lbl.textContent = 'Station ' + (idx + 1);
+    card.appendChild(lbl);
+
+    if (!link) {
+      const miss = document.createElement('div');
+      miss.className = 'qr-missing';
+      miss.textContent = 'Kein Stationslink vorhanden.';
+      card.appendChild(miss);
+    } else {
+      const qrDiv = document.createElement('div');
+      qrDiv.className = 'qr-canvas';
+      card.appendChild(qrDiv);
+      try {
+        new QRCode(qrDiv, {
+          text: link, width: 200, height: 200,
+          colorDark: '#000000', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch(e) { qrDiv.textContent = 'QR-Fehler'; }
+    }
+
+    container.appendChild(card);
+  });
+
+  wrap.classList.remove('hidden');
+}
+
+function printQrCodes() {
+  const container = $id('qr-output');
+  if (!container || !container.children.length) { alert('Bitte zuerst QR-Codes erzeugen.'); return; }
+
+  const planTitle = getV('inp-title').trim() || 'EA-Funkübung';
+  const sel       = $id('qr-unit-select');
+  const unitText  = sel ? (sel.options[sel.selectedIndex]?.textContent || '') : '';
+  const now       = new Date();
+  const dateStr   = now.toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'})
+                  + ', ' + now.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+
+  const cards = [];
+  container.querySelectorAll('.qr-card').forEach((card, idx) => {
+    const label   = card.querySelector('.qr-label')?.textContent || '';
+    const canvas  = card.querySelector('canvas');
+    const missing = card.querySelector('.qr-missing');
+    const col     = (idx % 2 === 0) ? 'left' : 'right';
+    if (canvas)       cards.push({ col, label, img: canvas.toDataURL('image/png') });
+    else if (missing) cards.push({ col, label, missing: missing.textContent });
+  });
+
+  const pages = [];
+  for (let i = 0; i < cards.length; i += 8) pages.push(cards.slice(i, i + 8));
+
+  const hdr = `<div class="qr-print-header">
+    <div class="line1">${planTitle}</div>
+    <div class="line2">${unitText}</div>
+  </div>`;
+  const ftr = `<div class="qr-print-footer">${dateStr}</div>`;
+
+  const pagesHtml = pages.map((page, pi) => {
+    const isLast    = pi === pages.length - 1;
+    const gridCards = page.map(c => {
+      const content = c.img
+        ? `<img src="${c.img}" alt="QR-Code">`
+        : `<div class="qr-missing">${c.missing}</div>`;
+      return `<div class="qr-card qr-card--${c.col}"><div class="qr-label">${c.label}</div>${content}</div>`;
+    }).join('');
+    return `<div class="qr-page${isLast ? '' : ' qr-page--break'}">
+  ${hdr}
+  <div class="qr-print-grid">${gridCards}</div>
+  ${ftr}
+</div>`;
+  }).join('\n');
+
+  const css = `
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Inter','Segoe UI',Arial,sans-serif;background:#fff;color:#111;width:210mm;min-height:297mm}
+@page{size:A4 portrait;margin:8mm}
+.qr-page{
+  position:relative;
+  width:194mm;
+  height:281mm;
+  padding:0;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  overflow:hidden;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.qr-page--break{page-break-after:always;break-after:always}
+.qr-print-header{padding-bottom:5px;border-bottom:2px solid #8b0000;margin-bottom:5mm}
+.qr-print-header .line1{font-size:12pt;font-weight:900;color:#111}
+.qr-print-header .line2{font-size:10pt;font-weight:600;color:#444;margin-top:2px}
+.qr-print-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:repeat(4,1fr);
+  column-gap:8mm;
+  row-gap:0;
+  align-items:center;
+  overflow:hidden;
+}
+.qr-card{
+  width:62mm;
+  border:1px solid #bbb;
+  border-radius:6px;
+  padding:3mm;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2mm;
+  break-inside:avoid;
+}
+.qr-card--left{justify-self:start}
+.qr-card--right{justify-self:end}
+.qr-label{font-family:'Inter','Segoe UI',Arial,sans-serif;font-size:13pt;font-weight:700;color:#111;text-align:center;letter-spacing:0.02em}
+.qr-missing{color:#cc6600;font-size:9pt;text-align:center;padding:8mm}
+img{display:block;width:50mm;height:50mm;border-radius:3px}
+.qr-print-footer{position:absolute;bottom:0;right:0;left:0;text-align:right;font-size:8pt;color:#888;padding-top:3px;border-top:1px solid #e0e0e0}
+@media print{
+  .qr-page{page-break-inside:avoid;break-inside:avoid}
+  .qr-page--break{page-break-after:always;break-after:always}
+}`.trim();
+
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><title>${planTitle}</title>
+<style>${css}</style></head>
+<body>${pagesHtml}</body></html>`;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;opacity:0;pointer-events:none';
+  document.body.appendChild(iframe);
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
+  iframe.contentWindow.onload = function() {
+    iframe.contentWindow.focus(); iframe.contentWindow.print();
+    setTimeout(() => { document.body.removeChild(iframe); }, 2000);
+  };
+}
+
+
+
+
+
+
+
+
+var sgMap = null, sgMapBig = null;
+var sgMarker = null, sgMarkerBig = null;
+var sgCircle = null, sgCircleBig = null;
+var sgMarkerTest = null, sgMarkerTestBig = null;
+var sgCircleTest = null, sgCircleTestBig = null;
+var sgMapBigInit = false;
+var SG_ICON_RED = null, SG_ICON_BLUE = null;
+
+var SG_MAP_CENTER = [50.432287, 9.6131484];
+var SG_MAP_ZOOM   = 14;
+var SG_TILE_URL   = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+var SG_TILE_ATTR  = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+function createSgIcon(color) {
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="25" height="41">'
+    + '<path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z" fill="' + color + '" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>'
+    + '<circle cx="12" cy="12" r="4.5" fill="rgba(255,255,255,0.75)"/></svg>';
+  return L.divIcon({ className:'', html:svg, iconSize:[25,41], iconAnchor:[12,41], popupAnchor:[1,-34] });
+}
+
+function initSgMap() {
+  if (sgMap || !document.getElementById('sg-map') || typeof L === 'undefined') return;
+
+  sgMap = L.map('sg-map', { zoomControl: true }).setView(SG_MAP_CENTER, SG_MAP_ZOOM);
+  L.tileLayer(SG_TILE_URL, { attribution: SG_TILE_ATTR, maxZoom: 19 }).addTo(sgMap);
+
+  sgMap.on('click', function(e) { onSgMapClick(e.latlng.lat, e.latlng.lng); });
+
+  /* Expand-Button als Leaflet-Control */
+  var ExpandCtrl = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd: function() {
+      var btn = L.DomUtil.create('button', 'sg-expand-btn');
+      btn.title = 'Karte vergrößern';
+      btn.innerHTML = '&#x26F6;';
+      L.DomEvent.on(btn, 'click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        openSgMapOverlay();
+      });
+      return btn;
+    }
+  });
+  new ExpandCtrl().addTo(sgMap);
+
+  SG_ICON_RED  = createSgIcon('#cc2200');
+  SG_ICON_BLUE = createSgIcon('#1a6bc7');
+
+  /* Vorhandene Koordinaten sofort einzeichnen */
+  var lat = parseFloat(getV('sg-lat'));
+  var lng = parseFloat(getV('sg-lng'));
+  if (!isNaN(lat) && !isNaN(lng)) { setMapMarker(lat, lng); }
+  updateSgTestMarker();
+}
+
+function onSgMapClick(lat, lng) {
+  var chk = $id('sg-test-toggle');
+  var useTest = chk && chk.checked;
+
+  if (useTest) {
+    /* Standardmodus AN → Felder aktualisieren + Vorschau-Marker verschieben */
+    /* sgTestCoords wird NICHT verändert – erst nach „Speichern" */
+    var latStr = lat.toFixed(6), lngStr = lng.toFixed(6);
+    setV('sg-test-lat', latStr);
+    setV('sg-test-lng', lngStr);
+    save();
+    updateSgTestMarker();
+  } else {
+    /* Standardmodus AUS → roter Pin */
+    setV('sg-lat', lat.toFixed(6));
+    setV('sg-lng', lng.toFixed(6));
+    save();
+    setMapMarker(lat, lng);
+  }
+}
+
+function setMapMarker(lat, lng) {
+  /* Kleine Karte – kein setView, kein flyTo */
+  if (sgMap) {
+    if (sgMarker) { sgMarker.setLatLng([lat, lng]); }
+    else { sgMarker = L.marker([lat, lng], SG_ICON_RED ? {icon:SG_ICON_RED} : {}).addTo(sgMap).bindTooltip('Aktueller Arbeitsbereich', {permanent:false, direction:'top'}); }
+    updateSgCircle();
+  }
+  /* Große Karte – nur aktualisieren wenn bereits offen */
+  if (sgMapBig && sgMapBigInit) {
+    if (sgMarkerBig) { sgMarkerBig.setLatLng([lat, lng]); }
+    else { sgMarkerBig = L.marker([lat, lng], SG_ICON_RED ? {icon:SG_ICON_RED} : {}).addTo(sgMapBig).bindTooltip('Aktueller Arbeitsbereich', {permanent:false, direction:'top'}); }
+    updateSgCircleBig();
+  }
+}
+
+function sgCircleOpts(rad) {
+  return { radius: rad, color: '#8b0000', fillColor: '#8b0000', fillOpacity: 0.1, weight: 1.5, dashArray: '5 4' };
+}
+
+function updateSgCircle() {
+  if (!sgMap || !sgMarker) return;
+  var rad = parseFloat(getV('sg-radius'));
+  if (isNaN(rad) || rad <= 0) {
+    if (sgCircle) { sgCircle.remove(); sgCircle = null; } return;
+  }
+  var pos = sgMarker.getLatLng();
+  if (sgCircle) { sgCircle.setLatLng(pos); sgCircle.setRadius(rad); }
+  else           { sgCircle = L.circle(pos, sgCircleOpts(rad)).addTo(sgMap); }
+}
+
+function updateSgCircleBig() {
+  if (!sgMapBig || !sgMarkerBig) return;
+  var rad = parseFloat(getV('sg-radius'));
+  if (isNaN(rad) || rad <= 0) {
+    if (sgCircleBig) { sgCircleBig.remove(); sgCircleBig = null; } return;
+  }
+  var pos = sgMarkerBig.getLatLng();
+  if (sgCircleBig) { sgCircleBig.setLatLng(pos); sgCircleBig.setRadius(rad); }
+  else              { sgCircleBig = L.circle(pos, sgCircleOpts(rad)).addTo(sgMapBig); }
+}
+
+function sgCircleTestOpts(rad) {
+  return { radius: rad, color: '#1a6bc7', fillColor: '#1a6bc7', fillOpacity: 0.08, weight: 1.5, dashArray: '5 4' };
+}
+
+function updateSgTestMarker() {
+  var chk = $id('sg-test-toggle');
+  var active = chk && chk.checked;
+  /* Vorschau: Marker reagiert auf Eingabefelder, nicht auf gespeicherte sgTestCoords */
+  var lat = parseFloat(getV('sg-test-lat')), lng = parseFloat(getV('sg-test-lng')), rad = parseFloat(getV('sg-test-radius'));
+
+  function _applyToMap(map, markerRef, circleRef) {
+    /* returns [marker, circle] */
+    var m = markerRef, c = circleRef;
+    if (active && !isNaN(lat) && !isNaN(lng)) {
+      if (m) { m.setLatLng([lat, lng]); }
+      else {
+        m = L.marker([lat, lng], SG_ICON_BLUE ? {icon:SG_ICON_BLUE} : {}).addTo(map);
+        m.bindTooltip('Standard-Testkoordinaten', {permanent:false, direction:'top'});
+      }
+      if (!isNaN(rad) && rad > 0) {
+        if (c) { c.setLatLng([lat, lng]); c.setRadius(rad); }
+        else { c = L.circle([lat, lng], sgCircleTestOpts(rad)).addTo(map); }
+      } else {
+        if (c) { c.remove(); c = null; }
+      }
+    } else {
+      if (m) { m.remove(); m = null; }
+      if (c) { c.remove(); c = null; }
+    }
+    return [m, c];
+  }
+
+  if (sgMap) {
+    var r1 = _applyToMap(sgMap, sgMarkerTest, sgCircleTest);
+    sgMarkerTest = r1[0]; sgCircleTest = r1[1];
+  }
+  if (sgMapBig && sgMapBigInit) {
+    var r2 = _applyToMap(sgMapBig, sgMarkerTestBig, sgCircleTestBig);
+    sgMarkerTestBig = r2[0]; sgCircleTestBig = r2[1];
+  }
+}
+
+function openSgMapOverlay() {
+  var dlg = document.getElementById('sg-map-dlg');
+  if (!dlg) return;
+  dlg.showModal();
+
+  if (!sgMapBig) {
+    /* Erst-Initialisierung große Karte */
+    var lat  = parseFloat(getV('sg-lat'));
+    var lng  = parseFloat(getV('sg-lng'));
+    var ctr  = (!isNaN(lat) && !isNaN(lng)) ? [lat, lng] : SG_MAP_CENTER;
+    var zoom = sgMap ? sgMap.getZoom() : SG_MAP_ZOOM;
+
+    sgMapBig = L.map('sg-map-big', { zoomControl: true }).setView(ctr, zoom);
+    L.tileLayer(SG_TILE_URL, { attribution: SG_TILE_ATTR, maxZoom: 19 }).addTo(sgMapBig);
+    sgMapBig.on('click', function(e) { onSgMapClick(e.latlng.lat, e.latlng.lng); });
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      sgMarkerBig = L.marker([lat, lng], SG_ICON_RED ? {icon:SG_ICON_RED} : {})
+        .addTo(sgMapBig)
+        .bindTooltip('Aktueller Arbeitsbereich', {permanent:false, direction:'top'});
+      updateSgCircleBig();
+    }
+    sgMapBigInit = true;
+    updateSgTestMarker();
+    setTimeout(function() { sgMapBig.invalidateSize(); }, 150);
+  } else {
+    /* Sync beim erneuten Öffnen */
+    var lat = parseFloat(getV('sg-lat'));
+    var lng = parseFloat(getV('sg-lng'));
+    if (!isNaN(lat) && !isNaN(lng)) {
+      if (sgMarkerBig) {
+        sgMarkerBig.setLatLng([lat, lng]);
+      } else {
+        sgMarkerBig = L.marker([lat, lng], SG_ICON_RED ? {icon:SG_ICON_RED} : {})
+          .addTo(sgMapBig)
+          .bindTooltip('Aktueller Arbeitsbereich', {permanent:false, direction:'top'});
+      }
+      updateSgCircleBig();
+    }
+    updateSgTestMarker();
+    setTimeout(function() { sgMapBig.invalidateSize(); }, 100);
+  }
+}
+
+function closeSgMapOverlay() {
+  var dlg = document.getElementById('sg-map-dlg');
+  if (dlg) dlg.close();
+}
+
+/* ESC + Backdrop schließen Karten-Overlay */
+(function() {
+  var dlg = document.getElementById('sg-map-dlg');
+  if (!dlg) return;
+  dlg.addEventListener('click', function(e) { if (e.target === dlg) closeSgMapOverlay(); });
+  dlg.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeSgMapOverlay(); });
+})();
+
+/* ─── SG LISTENERS – single clean block, no duplicates ─── */
+(function() {
+  /* Station select */
+  var sgSel = $id('sg-station');
+  if (sgSel) sgSel.addEventListener('change', save);
+
+  var ghChk = $id('gh-url-toggle');
+  if (ghChk) ghChk.addEventListener('change', toggleGithubUrlBox);
+
+  function resetQrOutput() {
+    const wrap = $id('qr-output-wrap');
+    const out  = $id('qr-output');
+    const title = $id('qr-output-title');
+    if (wrap)  wrap.classList.add('hidden');
+    if (out)   out.innerHTML = '';
+    if (title) title.textContent = '';
+  }
+
+  var qrSel = $id('qr-unit-select');
+  if (qrSel) qrSel.addEventListener('change', resetQrOutput);
+
+  /* Toggle */
+  var sgChk = $id('sg-test-toggle');
+  if (sgChk) sgChk.addEventListener('change', function() { updateSgTestInfo(); save(); });
+
+  /* RED: sg-lat / sg-lng → save + update/remove red marker when values change */
+  ['sg-lat', 'sg-lng'].forEach(function(id) {
+    var el = $id(id);
+    if (!el) return;
+    el.addEventListener('input', function() {
+      save();
+      var lat = parseFloat(getV('sg-lat'));
+      var lng = parseFloat(getV('sg-lng'));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setMapMarker(lat, lng);
+      } else {
+        /* Entferne roten Marker und Radius wenn Koordinaten leer/ungültig */
+        if (sgMarker) { sgMarker.remove(); sgMarker = null; }
+        if (sgCircle) { sgCircle.remove(); sgCircle = null; }
+        if (sgMarkerBig) { sgMarkerBig.remove(); sgMarkerBig = null; }
+        if (sgCircleBig) { sgCircleBig.remove(); sgCircleBig = null; }
+      }
+    });
+  });
+
+  /* RED: sg-radius → save + update red circle immediately */
+  var radEl = $id('sg-radius');
+  if (radEl) radEl.addEventListener('input', function() {
+    save(); updateSgCircle(); updateSgCircleBig();
+  });
+
+  /* BLUE: sg-test-lat / sg-test-lng → Vorschau-Marker aktualisieren, sgTestCoords NICHT schreiben */
+  ['sg-test-lat', 'sg-test-lng'].forEach(function(id) {
+    var el = $id(id);
+    if (!el) return;
+    el.addEventListener('input', function() {
+      save();
+      updateSgTestMarker();
+    });
+  });
+
+  /* BLUE: sg-test-radius → Vorschau-Kreis aktualisieren, sgTestCoords NICHT schreiben */
+  var testRadEl = $id('sg-test-radius');
+  if (testRadEl) testRadEl.addEventListener('input', function() {
+    save();
+    updateSgTestMarker();
+  });
+})();
+
+
+
+/* ─── POSITION CODES ─── */
+function renderVorgabe(sol, nStations) {
+  const box = $id('vorgabe-box');
+  if (!box) return;
+
+  function getRest(units) {
+    const avail = nStations * units;
+    const chars = [...sol];
+    if (chars.length <= avail) return null;
+    return chars.slice(avail).join('');
+  }
+
+  if (!sol || !sol.trim() || nStations === 0) {
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = '';
+
+  const rest5 = getRest(5);
+  const rest4 = getRest(4);
+
+  box.innerHTML = `
+    <span class="vb-title">Vorgabewörter für die Übungsleitung</span>
+    <span class="vb-hint">Diese Wörter müssen durch die Übungsleitung vorgegeben werden, wenn weniger als 6 Einheiten genutzt werden.</span>
+    <div class="vb-entries">
+      <div class="vb-entry">
+        <span class="vb-label">Bei 5 Einheiten vorgeben:</span>
+        ${rest5 ? `<span class="vb-val">${escH(rest5)}</span>` : '<span class="vb-none">Keine Vorgabe erforderlich.</span>'}
+      </div>
+      <div class="vb-entry">
+        <span class="vb-label">Bei 4 Einheiten vorgeben:</span>
+        ${rest4 ? `<span class="vb-val">${escH(rest4)}</span>` : '<span class="vb-none">Keine Vorgabe erforderlich.</span>'}
+      </div>
+    </div>`;
+}
+
+
+function buildPositionCodes(sol) {
+  const chars = [...sol];
+  const codes = [];
+  let wordNum = 1;
+  let posInWord = 0;
+
+  chars.forEach(function(ch) {
+    if (ch === ' ') {
+      // Space gets next position of CURRENT word, then new word starts
+      posInWord++;
+      codes.push('W' + wordNum + '/P' + posInWord);
+      wordNum++;
+      posInWord = 0;
+    } else {
+      // Letter or dot: next position in current word
+      posInWord++;
+      codes.push('W' + wordNum + '/P' + posInWord);
+    }
+  });
+  return codes;
+}
+
+/* ─── ELW GENERATE ─── */
+function generateELW(numUnits) {
+  const title    = getV('inp-title') || '';
+  const date     = getV('inp-date')  || '';
+  const time     = getV('inp-time')  || '';
+  const sol      = getV('inp-sol')   || '';
+  const filled   = filledStations();
+  const nRows    = filled.length;
+  const actUnits = units.slice(0, numUnits);
+
+  /* subtitle */
+  const types    = actUnits.map(u => u.type);
+  const allFHZ   = types.every(t => t === 'FHZ');
+  const allGrp   = types.every(t => t === 'Gruppe');
+  const subtitle = allFHZ ? 'Durchführungsansicht für Fahrzeugkoordination, Stationsfolge und Funkmeldungen'
+                 : allGrp ? 'Durchführungsansicht für Gruppenkoordination, Stationsfolge und Funkmeldungen'
+                 : 'Durchführungsansicht für Einheitenkoordination, Stationsfolge und Funkmeldungen';
+
+  /* unit labels */
+  const uLabels = actUnits.map((u, i) =>
+    u.name && u.name.trim() ? u.type + ' ' + (i+1) + ' \u2013 ' + u.name : 'Einheit ' + (i+1)
+  );
+
+  /* page title */
+  const pageTitle = title ? title + ' \u2013 ELW-Koordination' : '\u2013 ELW-Koordination';
+
+  /* position codes (global across all units) */
+  const posCodes = buildPositionCodes(sol);
+
+  /* rotations */
+  const rots = Array.from({length: numUnits}, function(_, v) {
+    return Array.from({length: nRows}, function(_, p) {
+      return filled[(v + p) % nRows] || null;
+    });
+  });
+
+  /* safe html escape helper for generated file */
+  function sh(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* build funkkanäle rows */
+  var funkRows = funks.map(function(f) {
+    var tmo = f.tmo && f.tmo.trim() ? sh(f.tmo) : '<span class="empty-val">\u2014</span>';
+    var dmo = f.dmo && f.dmo.trim() ? sh(f.dmo) : '<span class="empty-val">\u2014</span>';
+    return '<tr><td>' + tmo + '</td><td class="ftbl-dmo">' + dmo + '</td></tr>';
+  }).join('');
+
+  /* build unit cards */
+  var unitCards = uLabels.map(function(lbl, v) {
+    var rows = '';
+    for (var p = 0; p < nRows; p++) {
+      var st = rots[v][p];
+      var addr = st ? sh(st.address) : '';
+      var task = st ? sh(st.task) : '';
+      var ci = v * nRows + p;
+      var code = (ci < posCodes.length) ? sh(posCodes[ci]) : '\u2014';
+      rows += '<tr id="row-' + v + '-' + p + '" data-status="open">'
+            + '<td class="td-num">' + (p+1) + '</td>'
+            + '<td class="td-addr">' + addr + '</td>'
+            + '<td class="td-task">' + task + '</td>'
+            + '<td class="td-code">' + code + '</td>'
+            + '<td class="td-stxt">Offen</td>'
+            + '<td class="no-print td-act">'
+            + '<button class="ba ba-e" onclick="setSt(' + v + ',' + p + ',\'erteilt\')">Auftrag erteilt</button>'
+            + '<button class="ba ba-b" onclick="setSt(' + v + ',' + p + ',\'beendet\')">Auftrag beendet</button>'
+            + '</td></tr>';
+    }
+    return '<div class="uc">'
+         + '<div class="uh">' + sh(lbl) + '</div>'
+         + '<div class="ub"><div class="tw"><table>'
+         + '<thead><tr><th>Station</th><th class="th-addr">Adresse</th><th class="th-task">Aufgabe</th><th>Positionscode</th><th>Status</th><th class="no-print">Aktion</th></tr></thead>'
+         + '<tbody>' + rows + '</tbody>'
+         + '</table></div></div></div>';
+  }).join('');
+
+  /* CSS for generated file */
+  var css = [
+    '*{box-sizing:border-box;margin:0;padding:0}',
+    'html{font-size:14px}',
+    'body{background:#0f0f0f;color:#c8c8c8;font-family:Inter,"Segoe UI",Arial,sans-serif;line-height:1.55;min-height:100vh}',
+    '::-webkit-scrollbar{width:6px;height:6px}',
+    '::-webkit-scrollbar-track{background:#141414}',
+    '::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:3px}',
+    '::-webkit-scrollbar-thumb:hover{background:#8b0000}',
+    '.site-header{background:#1a1a1a;border-bottom:3px solid #8b0000;padding:13px 20px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.55)}',
+    '.hdr-inner{max-width:1500px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px;align-items:center}',
+    '.hdr-brand{flex:1 1 260px}',
+    '.hdr-brand h1{font-size:1.08rem;font-weight:800;color:#c8c8c8;letter-spacing:.015em}',
+    '.hdr-brand .sub{font-size:.72rem;color:#666;margin-top:2px}',
+    '.hdr-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:#aaa}',
+    '.hdr-meta strong{color:#c8c8c8}',
+    '.hdr-btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}',
+    '.btn{display:inline-flex;align-items:center;gap:5px;background:#8b0000;color:#c8c8c8;border:none;border-radius:5px;padding:7px 13px;font-family:inherit;font-size:.77rem;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap}',
+    '.btn:hover{background:#a50000}',
+    '.btn-ghost{background:#202020;border:1px solid #3a3a3a;color:#aaa}',
+    '.btn-ghost:hover{background:#2a2a2a;color:#c8c8c8}',
+    '.page-body{max-width:1500px;margin:0 auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px}',
+    '.sec{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.38)}',
+    '.sec-head{display:flex;align-items:center;gap:10px;padding:11px 16px;background:linear-gradient(90deg,rgba(139,0,0,.09) 0%,transparent 100%);border-bottom:1px solid #2e2e2e}',
+    '.sec-icon{width:30px;height:30px;background:#8b0000;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}',
+    '.sec-title{font-size:1rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase}',
+    '.sec-body{padding:14px 16px}',
+    '.tw{overflow-x:auto;border-radius:5px}',
+    'table{width:100%;border-collapse:collapse;font-size:1rem}',
+    'thead th{background:#1e1e1e;color:#aaa;padding:7px 10px;text-align:center;font-weight:700;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;border-bottom:2px solid #8b0000;position:sticky;top:0;z-index:2}',
+    '.th-addr,.th-task{text-align:left!important}',
+    '.td-num{text-align:center;width:70px;white-space:nowrap}',
+    '.td-addr{text-align:left;padding-left:18px}',
+    'td{padding:7px 10px;border-bottom:1px solid #2e2e2e;vertical-align:middle}',
+    'tr:last-child td{border-bottom:none}',
+    '.td-num{text-align:center;font-weight:800;font-size:1.1rem;color:#8b0000;width:40px}',
+    '.td-code{text-align:center;font-weight:700;color:#aaa;font-size:1rem}',
+    '.td-stxt{text-align:center;font-size:1rem;color:#666}',
+    '.td-act{text-align:center;white-space:nowrap}',
+    '.td-addr{font-size:1rem}',
+    '.td-task{font-size:1rem;color:#aaa}',
+    'tr[data-status="erteilt"] td{background:rgba(245,166,35,.1)}',
+    'tr[data-status="erteilt"] .td-stxt{color:#f5a623;font-weight:700}',
+    'tr[data-status="beendet"] td{background:rgba(24,201,100,.1)}',
+    'tr[data-status="beendet"] .td-stxt{color:#18c964;font-weight:700}',
+    '.uc{background:#1a1a1a;border:1px solid #2e2e2e;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.38)}',
+    '.uh{background:linear-gradient(90deg,rgba(139,0,0,.15) 0%,#202020 100%);padding:10px 16px;font-family:inherit;font-size:1rem;font-weight:800;letter-spacing:.04em;color:#c8c8c8;border-bottom:2px solid #8b0000}',
+    '.ub{padding:0}',
+    '.ba{padding:6px 12px;border-radius:4px;font-family:inherit;font-size:.95rem;font-weight:700;cursor:pointer;margin:0 2px;transition:background .15s,border-color .15s,color .15s;background:#1a1a1a;border:1px solid #3a3a3a;color:#888}',
+    '.ba:hover{background:#2a2a2a;border-color:#555;color:#c8c8c8}',
+    'tr[data-status="erteilt"] .ba-e{background:rgba(245,166,35,.2);border:1px solid rgba(245,166,35,.6);color:#f5a623}',
+    'tr[data-status="erteilt"] .ba-e:hover{background:rgba(245,166,35,.35)}',
+    'tr[data-status="beendet"] .ba-b{background:rgba(24,201,100,.18);border:1px solid rgba(24,201,100,.55);color:#18c964}',
+    'tr[data-status="beendet"] .ba-b:hover{background:rgba(24,201,100,.32)}',
+    '.funk-lbl{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#666;display:block;margin-bottom:2px}',
+    '.ftbl{width:100%;border-collapse:collapse;table-layout:fixed}',
+    '.ftbl thead th{background:#1e1e1e;color:#aaa;padding:12px 16px;text-align:center;font-weight:700;font-size:.82rem;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid #8b0000}',
+    '.ftbl thead th.ftbl-dmo{border-left:2px solid #8b0000}',
+    '.ftbl td{padding:12px 16px;text-align:center;font-size:.95rem;font-weight:600;color:#c8c8c8;border-bottom:1px solid #2e2e2e}',
+    '.ftbl td.ftbl-dmo{border-left:2px solid #8b0000}',
+    '.ftbl tr:last-child td{border-bottom:none}',
+    '.ftbl tbody tr:hover td{background:rgba(255,255,255,.02)}',
+    '.ftbl td.empty-val{color:#444;font-style:italic;font-size:.8rem;font-weight:400}',
+    '@media print{',
+    '  @page{size:A4 landscape;margin:10mm 14mm}',
+    '  *{box-shadow:none!important;transition:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
+    '  body{background:#fff!important;color:#111!important;font-size:11px;font-family:Inter,"Segoe UI",Arial,sans-serif}',
+    '  .no-print,.btn,.btn-ghost,.hdr-btns,.ba{display:none!important}',
+    '  .th-addr,.th-task{text-align:left!important}',
+    '  .td-num{width:60px!important;text-align:center!important}',
+    '  .td-addr{padding-left:14px!important;text-align:left!important}',
+    '  .site-header{display:block!important;background:#fff!important;border-bottom:2px solid #111!important;padding:0 0 10px 0!important;position:static!important;margin-bottom:14px}',
+    '  .hdr-inner{width:100%!important;max-width:100%!important;margin:0!important;display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:16px;flex-wrap:nowrap}',
+    '  .hdr-brand{flex:1;text-align:left}',
+    '  .hdr-brand h1{font-size:16px!important;color:#111!important;font-weight:800;letter-spacing:.01em;line-height:1.2;text-align:left}',
+    '  .hdr-brand .sub{font-size:10px!important;color:#444!important;margin-top:3px;font-weight:400;line-height:1.4;text-align:left}',
+    '  .hdr-brand .sub *{color:#444!important;font-weight:400!important}',
+    '  .hdr-meta{flex-shrink:0;display:flex!important;flex-direction:row!important;align-items:center;gap:0;font-size:11px;color:#111;font-weight:600;text-align:left;white-space:nowrap}',
+    '  .hdr-meta span{display:flex;align-items:center;white-space:nowrap}',
+    '  .hdr-meta span+span::before{content:" | ";color:#777;padding:0 7px;font-weight:400}',
+    '  .hdr-meta strong{color:#111!important;font-size:11px!important;font-weight:800;margin-left:3px}',
+    '  .funk-lbl{color:#555!important;font-size:9px!important;display:block;letter-spacing:.06em;text-transform:uppercase}',
+    '  .page-body{padding:0;gap:12px}',
+    '  .sec,.uc{border:1px solid #aaa!important;background:#fff!important;border-radius:0!important;margin-bottom:10px}',
+    '  .uc{break-inside:avoid}',
+    '  .sec-head,.uh{background:#e0e0e0!important;color:#111!important;font-size:11px!important;font-weight:800;padding:6px 14px!important;border-bottom:1px solid #aaa!important}',
+    '  .sec-icon{display:none!important}',
+    '  .sec-title{color:#111!important;font-size:11px!important;letter-spacing:.06em!important}',
+    '  .sec-body,.ub{padding:8px 14px!important}',
+    '  .tw{overflow:visible!important}',
+    '  table{width:100%;border-collapse:collapse;font-size:11px}',
+    '  thead th{background:#444!important;color:#fff!important;font-size:10px!important;padding:5px 9px!important;border:1px solid #222!important;text-align:center!important}',
+    '  td{border:1px solid #bbb!important;color:#111!important;padding:5px 9px!important;font-size:11px!important;white-space:normal!important;word-break:break-word!important}',
+    '  .ftbl thead th.ftbl-dmo{border-left:1px solid #888!important}',
+    '  .ftbl td{text-align:center!important;font-size:12px!important;font-weight:600}',
+    '  .ftbl td.ftbl-dmo{border-left:1px solid #bbb!important}',
+    '  .td-num{color:#111!important;font-size:13px!important;font-weight:800;text-align:center}',
+    '  .td-code{color:#333!important;font-size:11px!important;font-weight:700;text-align:center}',
+    '  .td-stxt{text-align:center!important;font-size:11px!important;font-weight:600}',
+    '  .td-addr{text-align:left!important;font-size:11px!important}',
+    '  .td-task{font-size:11px!important}',
+    '  tr[data-status="erteilt"] td{background:#fff8e1!important}',
+    '  tr[data-status="erteilt"] .td-stxt{color:#e65100!important;font-weight:800}',
+    '  tr[data-status="beendet"] td{background:#f1f8e9!important}',
+    '  tr[data-status="beendet"] .td-stxt{color:#1b5e20!important;font-weight:800}',
+    '}'
+  ].join('\n');
+
+  /* JS for generated file */
+  var js = [
+    'var dirty = false;',
+    'function setSt(v,p,s){',
+    '  var row = document.getElementById("row-"+v+"-"+p);',
+    '  var cur = row.dataset.status;',
+    '  row.dataset.status = (cur === s) ? "open" : s;',
+    '  updateRow(row);',
+    '  dirty = true;',
+    '}',
+    'function updateRow(row){',
+    '  var s = row.dataset.status;',
+    '  var stxt = row.querySelector(".td-stxt");',
+    '  if(s === "erteilt"){ if(stxt) stxt.textContent = "Auftrag erteilt"; }',
+    '  else if(s === "beendet"){ if(stxt) stxt.textContent = "Auftrag beendet"; }',
+    '  else { if(stxt) stxt.textContent = "Offen"; }',
+    '}',
+    'function resetAllStatus(){',
+    '  if(!confirm("Wirklich alle Status zur\u00FCcksetzen?")) return;',
+    '  document.querySelectorAll("tr[data-status]").forEach(function(row){',
+    '    row.dataset.status = "open"; updateRow(row);',
+    '  });',
+    '  dirty = false;',
+    '}',
+    'window.addEventListener("beforeunload", function(e){',
+    '  if(dirty){ e.preventDefault(); e.returnValue = "Achtung: Beim Neuladen oder Verlassen der Seite gehen gesetzte Status verloren."; }',
+    '});'
+  ].join('\n');
+
+  /* assemble full HTML */
+  var html = '<!DOCTYPE html>\n<html lang="de">\n<head>\n'
+    + '<meta charset="UTF-8">\n'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+    + '<title>EA-Funkübung – Feuerwehr Neuhof | Planungstool ' + TOOL_VERSION + '</title>\n'
+    + '<style>\n' + css + '\n</style>\n'
+    + '</head>\n<body>\n'
+    + '<header class="site-header">\n'
+    + '<div class="hdr-inner">\n'
+    + '<div class="hdr-brand"><h1>' + sh(pageTitle) + '</h1><div class="sub">' + sh(subtitle) + ' &nbsp;&middot;&nbsp; <span style="color:#888;font-weight:600">' + TOOL_VERSION + '</span></div></div>\n'
+    + '<div class="hdr-meta">'
+    + (date ? '<span>Unterrichtsdatum: <strong>' + sh(date) + '</strong></span>' : '')
+    + (time ? '<span>Unterrichtsbeginn: <strong>' + sh(time) + '</strong></span>' : '')
+    + '<span>Variante: <strong>' + numUnits + ' Einheiten</strong></span>'
+    + '</div>\n'
+    + '<div class="hdr-btns no-print">'
+    + '<button class="btn btn-ghost" onclick="resetAllStatus()">↺ Status zur\u00FCcksetzen</button>'
+    + '<button class="btn" onclick="window.print()">\uD83D\uDDA8 Drucken / PDF</button>'
+    + '</div>\n'
+    + '</div>\n</header>\n'
+    + '<div class="page-body">\n'
+    /* Funkkanäle */
+    + '<div class="sec"><div class="sec-head"><div class="sec-icon">\uD83D\uDCE1</div><span class="sec-title">Funkkan\u00E4le</span></div>'
+    + '<div class="sec-body"><div class="tw"><table class="ftbl">'
+    + '<thead><tr><th>TMO-Rufgruppe</th><th class="ftbl-dmo">DMO-Rufgruppe</th></tr></thead>'
+    + '<tbody>' + funkRows + '</tbody>'
+    + '</table></div></div></div>\n'
+    /* Unit cards */
+    + unitCards
+    + '\n</div>\n'
+    + '<script>\n' + js + '\n<\/script>\n'
+    + '</body>\n</html>';
+
+  /* download */
+  var rawName = title.replace(/[^a-zA-Z0-9\u00e4\u00f6\u00fc\u00c4\u00d6\u00dc\u00df\- ]/g,'').trim().replace(/ /g,'_') || 'ELW';
+  var blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = Object.assign(document.createElement('a'), {
+    href:     url,
+    download: 'ELW_Koordination_' + numUnits + '_Einheiten_' + rawName + '.html'
+  });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+/* ─── BUILD PRINT OVERVIEW (split into two tables: units 1-3 and 4-6) ─── */
+function buildPrintOverview() {
+  var filled = filledStations();
+  var nRows  = filled.length;
+  if (nRows === 0) return null;
+
+  var sol   = getV('inp-sol');
+  var chars = [...sol];
+
+  var rots = Array.from({length: NUM_UNITS}, function(_, v) {
+    return Array.from({length: nRows}, function(_, p) {
+      return filled[(v + p) % nRows] || null;
+    });
+  });
+  var ltrs = Array.from({length: NUM_UNITS}, function(_, v) {
+    return Array.from({length: nRows}, function(_, p) {
+      var ci = v * nRows + p;
+      return ci < chars.length ? chars[ci] : '';
+    });
+  });
+
+  var wrap = document.createElement('div');
+  wrap.id = 'print-ov-split';
+  wrap.className = 'print-only';
+
+  var head = document.createElement('div');
+  head.className = 'print-ov-head';
+  head.innerHTML = '<span class="print-ov-head-title">Kombinierte \u00dcbersicht \u2013 Reihenfolge &amp; Buchstaben je Fahrzeug / Gruppe</span>';
+  wrap.appendChild(head);
+
+  var halves = [{start:0, end:Math.min(3,NUM_UNITS)}, {start:3, end:NUM_UNITS}].filter(function(h){ return h.start < h.end; });
+
+  var inner = document.createElement('div');
+  inner.className = 'print-ov-inner';
+
+  halves.forEach(function(h) {
+    var start = h.start, end = h.end;
+    var names = Array.from({length: end-start}, function(_, i) {
+      var u = units[start+i];
+      if (!u) return 'Einheit '+(start+i+1);
+      return (u.name && u.name.trim()) ? u.type+'\u00a0'+(start+i+1)+' \u2013 '+u.name : u.type+'\u00a0'+(start+i+1);
+    });
+    var sub = document.createElement('div');
+    sub.className = 'print-ov-subtitle';
+    var halfTypes = Array.from({length: end-start}, function(_, i){ return (units[start+i]||{}).type||''; });
+    var allFHZ2 = halfTypes.every(function(t){ return t==='FHZ'; });
+    var allGrp2 = halfTypes.every(function(t){ return t==='Gruppe'; });
+    var halfWord = allFHZ2 ? 'Fahrzeuge' : allGrp2 ? 'Gruppen' : 'Einheiten';
+    sub.textContent = halfWord + ' ' + (start+1) + '\u2013' + end;
+    inner.appendChild(sub);
+
+    var h1 = '<thead><tr><th rowspan="2">Station</th>';
+    for (var v = start; v < end; v++) {
+      var u = units[v];
+      var lbl = (u && u.name && u.name.trim()) ? escH(u.type)+'\u00a0'+(v+1)+' \u2013 '+escH(u.name) : (u ? escH(u.type)+'\u00a0'+(v+1) : 'Einheit '+(v+1));
+      h1 += '<th colspan="2">'+lbl+'</th>';
+    }
+    h1 += '</tr><tr>';
+    for (var v2 = start; v2 < end; v2++) {
+      h1 += '<th class="sub" style="text-align:left">Adresse</th><th class="sub" style="text-align:right">Buchstabe</th>';
+    }
+    h1 += '</tr></thead><tbody>';
+    for (var p = 0; p < nRows; p++) {
+      h1 += '<tr><td class="td-pos">'+(p+1)+'</td>';
+      for (var v3 = start; v3 < end; v3++) {
+        var st    = rots[v3][p];
+        var addr  = st ? escH(st.address) : '';
+        var ch    = ltrs[v3][p];
+        var lh = ch === ' ' ? '<span class="td-sym">\u241f\u00a0Leerz.</span>'
+               : ch === '.' ? '<span class="td-sym">.\u00a0Punkt</span>'
+               : ch         ? '<span class="td-ltr">'+escH(ch)+'</span>'
+               :               '<span class="td-dash">\u2014</span>';
+        var gb = v3 > start ? ' class="print-ov-grp td-addr"' : ' class="td-addr"';
+        h1 += '<td'+gb+'>'+addr+'</td><td style="text-align:right">'+lh+'</td>';
+      }
+      h1 += '</tr>';
+    }
+    h1 += '</tbody>';
+    var tbl = document.createElement('table');
+    tbl.className = 'print-ov-table';
+    tbl.innerHTML = h1;
+    inner.appendChild(tbl);
+  });
+
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+/* ─── BEFORE / AFTER PRINT ─── */
+window.addEventListener('beforeprint', function() {
+  /* replace inputs with plain text spans */
+  document.querySelectorAll('input[type="text"]').forEach(function(inp) {
+    var span = document.createElement('span');
+    span.className = 'print-val';
+    span.textContent = inp.value;
+    inp.dataset.printReplaced = '1';
+    inp.parentNode.insertBefore(span, inp.nextSibling);
+    inp.style.display = 'none';
+  });
+  /* build split overview and insert after #sec-ov */
+  var existing = $id('print-ov-split');
+  if (existing) existing.remove();
+  var ov = buildPrintOverview();
+  if (ov) {
+    var secOv = $id('sec-ov');
+    if (secOv && secOv.parentNode) secOv.parentNode.insertBefore(ov, secOv.nextSibling);
+    else { var pb = document.querySelector('.page-body'); if(pb) pb.appendChild(ov); }
+  }
+});
+
+window.addEventListener('afterprint', function() {
+  /* restore inputs */
+  document.querySelectorAll('.print-val').forEach(function(s){ s.remove(); });
+  document.querySelectorAll('input[data-print-replaced]').forEach(function(inp) {
+    inp.style.display = '';
+    delete inp.dataset.printReplaced;
+  });
+  /* remove split tables */
+  var el = $id('print-ov-split');
+  if (el) el.remove();
+});
+
+/* ─── INIT ─── */
+(function init(){
+  const ok = load();
+  if (!ok || stations.length===0) stations = Array.from({length:DEFAULT_STATIONS},emptySt);
+  if (!funks.length) funks = [emptyFk()];
+  if (!units.length || units.length !== NUM_UNITS) units = Array.from({length:NUM_UNITS},emptyUnit);
+  renderFunk(); renderStations(); renderStationSelect(); updateSgTestInfo(); renderDerived();
+  /* init print header with loaded values */
+  const pd = $id('ph-date'), pt = $id('ph-time'), pti = $id('ph-title');
+  if (pd)  pd.textContent  = getV('inp-date')  || '–';
+  if (pt)  pt.textContent  = getV('inp-time')  || '–';
+  if (pti) pti.textContent = getV('inp-title') || '';
+  updateVersionDisplay();
+  /* Leaflet-Karte nach DOM-Aufbau initialisieren */
+  setTimeout(initSgMap, 250);
+})();
+</script>
+</body>
+</html>
