@@ -1023,12 +1023,17 @@ dialog#sg-map-dlg .lb-close { top: -14px; right: -14px; z-index: 100; }
   <div class="sec-body">
 
     <!-- Steuerung -->
+    <div id="qr-empty-hint" class="hidden" style="text-align:center;padding:24px 16px;color:#666;font-style:italic;font-size:0.85rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--card2)">
+      Keine Stationen mit Adressen vorhanden.<br>Bitte im Abschnitt „Aufgaben &amp; Lagebilder" Adressen eintragen.
+    </div>
+    <div id="qr-controls">
     <div class="sg-field" style="max-width:340px;margin-bottom:14px">
       <label class="sg-lbl">Fahrzeug / Gruppe</label>
       <select id="qr-unit-select"></select>
     </div>
 
     <button class="btn" onclick="renderQrCodes()">📱 QR-Codes erzeugen</button>
+    </div>
 
     <!-- Ausgabe -->
     <div id="qr-output-wrap" class="hidden">
@@ -2331,6 +2336,15 @@ function renderQrUnitSelect() {
     sel.appendChild(opt);
   }
   if (saved !== '') sel.value = saved;
+
+  /* Hint anzeigen wenn keine Stationen vorhanden */
+  const hasFilled = filledStations().length > 0;
+  const hint = $id('qr-empty-hint');
+  const ctrl = $id('qr-controls');
+  const wrap = $id('qr-output-wrap');
+  if (hint) hint.classList.toggle('hidden', hasFilled);
+  if (ctrl) ctrl.classList.toggle('hidden', !hasFilled);
+  if (wrap && !hasFilled) wrap.classList.add('hidden');
 }
 
 function renderQrCodes() {
